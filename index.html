@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKYWATCH_ — Personal WX Ops</title>
+<meta name="description" content="SKYWATCH: a personal weather operations dashboard. Animated NEXRAD radar, IR satellite, NWS alerts, station obs, point forecasts, tropics and fronts. All free public APIs, no keys.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>&#x1F4E1;</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --bg:#070b0a;
+  --panel:#0c1211;
+  --panel-2:#101817;
+  --line:#1c2a27;
+  --ink:#cfe7e2;
+  --muted:#5f7a74;
+  --dim:#3d524d;
+  --accent:#39c2a5;
+  --accent-dim:#1e6e5e;
+  --warn:#ff5d5d;
+  --watch:#ffb14d;
+  --adv:#ffe066;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:var(--sans);font-size:14px;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+
+/* ---------- header ---------- */
+header{
+  display:flex;align-items:center;gap:18px;
+  padding:10px 16px;border-bottom:1px solid var(--line);
+  background:var(--panel);flex-shrink:0;flex-wrap:wrap;
+}
+.brand{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:.08em;color:var(--accent)}
+.brand .cursor{animation:blink 1.2s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.tagline{font-family:var(--mono);font-size:10px;letter-spacing:.25em;color:var(--muted)}
+nav{display:flex;gap:4px;margin-left:auto}
+nav button{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  padding:6px 12px;border:1px solid transparent;border-radius:3px;color:var(--muted);
+}
+nav button:hover{color:var(--ink)}
+nav button.active{color:var(--accent);border-color:var(--accent-dim);background:rgba(57,194,165,.06)}
+#clock{font-family:var(--mono);font-size:13px;color:var(--ink);min-width:220px;text-align:right}
+#clock .utc{color:var(--muted);font-size:10px;letter-spacing:.1em}
+
+/* ---------- layout ---------- */
+main{flex:1;display:flex;min-height:0;position:relative}
+.page{flex:1;display:none;min-height:0}
+.page.active{display:flex}
+
+/* ---------- sidebar ---------- */
+aside{
+  width:230px;flex-shrink:0;background:var(--panel);
+  border-right:1px solid var(--line);
+  padding:14px 12px;display:flex;flex-direction:column;gap:16px;
+  overflow-y:auto;
+}
+.sec-title{font-family:var(--mono);font-size:10px;letter-spacing:.28em;color:var(--muted);margin-bottom:8px}
+.toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;padding:7px 9px;margin-bottom:6px;
+  border:1px solid var(--line);border-radius:3px;background:var(--panel-2);
+  text-align:left;
+}
+.toggle .t-name{font-size:12px;font-weight:600}
+.toggle .t-sub{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--muted);display:block;margin-top:2px}
+.toggle .lamp{width:8px;height:8px;border-radius:50%;background:var(--dim);flex-shrink:0}
+.toggle.on{border-color:var(--accent-dim)}
+.toggle.on .lamp{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{
+  flex:1;padding:6px 0;font-family:var(--mono);font-size:10px;letter-spacing:.15em;
+  color:var(--muted);background:var(--panel-2);
+}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.active{color:#04110e;background:var(--accent);font-weight:700}
+.statusline{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--muted);line-height:1.9;word-break:break-word}
+.statusline b{color:var(--ink);font-weight:600}
+.hint{
+  font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);
+  border-top:1px solid var(--line);padding-top:10px;margin-top:auto;line-height:1.8;
+}
+
+/* ---------- map ---------- */
+.map-wrap{flex:1;position:relative;min-width:0}
+#map{position:absolute;inset:0;background:#0a0f0e}
+.leaflet-container{font-family:var(--mono)}
+.leaflet-control-attribution{
+  background:rgba(7,11,10,.8)!important;color:var(--dim)!important;
+  font-family:var(--mono);font-size:9px!important;
+}
+.leaflet-control-attribution a{color:var(--muted)!important}
+.leaflet-bar a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{
+  background:var(--panel)!important;color:var(--ink)!important;
+  border:1px solid var(--line);box-shadow:0 4px 18px rgba(0,0,0,.6)!important;border-radius:4px!important;
+}
+.leaflet-popup-content{font-family:var(--sans);font-size:12px;line-height:1.5;margin:10px 12px!important}
+.alert-pop h4{font-family:var(--mono);font-size:12px;margin-bottom:4px}
+.alert-pop .meta{font-family:var(--mono);font-size:10px;color:var(--muted)}
+
+/* station markers */
+.stn{
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  background:rgba(7,11,10,.82);border:1px solid var(--line);border-radius:3px;
+  padding:1px 5px;white-space:nowrap;line-height:1.5;
+  text-shadow:0 1px 2px #000;
+}
+.stn small{display:block;font-size:8px;font-weight:400;letter-spacing:.1em;color:var(--muted)}
+
+/* radar console (bottom overlay on map) */
+.console{
+  position:absolute;left:12px;right:12px;bottom:12px;z-index:900;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  background:rgba(12,18,17,.92);border:1px solid var(--line);border-radius:4px;
+  padding:8px 14px;backdrop-filter:blur(4px);
+}
+#playBtn{
+  width:34px;height:34px;border:1px solid var(--accent-dim);border-radius:3px;
+  color:var(--accent);font-size:14px;flex-shrink:0;
+}
+#playBtn:hover{background:rgba(57,194,165,.1)}
+#frameTime{font-family:var(--mono);font-size:12px;color:var(--ink);min-width:130px}
+#frameBar{flex:1;height:4px;background:var(--line);border-radius:2px;min-width:120px;position:relative;cursor:pointer}
+#frameFill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:2px;width:0%}
+.legend{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted)}
+.legend .sw{width:26px;height:8px;border-radius:2px;display:inline-block}
+.legend span.lab{margin-right:2px}
+
+/* ---------- forecast panel ---------- */
+#fcPanel{
+  position:absolute;top:0;right:0;bottom:0;width:340px;max-width:92vw;z-index:1000;
+  background:var(--panel);border-left:1px solid var(--line);
+  transform:translateX(105%);transition:transform .25s ease;
+  display:flex;flex-direction:column;overflow-y:auto;
+  box-shadow:-8px 0 30px rgba(0,0,0,.5);
+}
+#fcPanel.open{transform:translateX(0)}
+.fc-head{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.fc-head h3{font-family:var(--mono);font-size:13px;letter-spacing:.08em}
+.fc-head .coords{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px}
+#fcClose{color:var(--muted);font-size:16px;padding:2px 6px}
+#fcClose:hover{color:var(--warn)}
+.fc-body{padding:14px 16px}
+.fc-now{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.fc-now .big{font-family:var(--mono);font-size:40px;font-weight:700;color:var(--accent)}
+.fc-now .desc{font-size:12px;color:var(--muted);line-height:1.5}
+.fc-sub{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--muted);margin:16px 0 8px}
+#spark{width:100%;height:90px;display:block;background:var(--panel-2);border:1px solid var(--line);border-radius:3px}
+.day-row{
+  display:flex;align-items:center;gap:10px;padding:6px 0;
+  border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;
+}
+.day-row:last-child{border-bottom:none}
+.day-row .d{width:38px;color:var(--muted)}
+.day-row .wx{flex:1;font-family:var(--sans);font-size:11px;color:var(--ink)}
+.day-row .hi{color:var(--accent);width:36px;text-align:right}
+.day-row .lo{color:var(--muted);width:36px;text-align:right}
+.fc-msg{font-family:var(--mono);font-size:11px;color:var(--muted);padding:20px 0;text-align:center}
+
+/* ---------- tropics page ---------- */
+.scroll-page{flex:1;overflow-y:auto;padding:22px clamp(14px,4vw,48px);min-width:0}
+.scroll-page h2{font-family:var(--mono);font-size:15px;letter-spacing:.15em;color:var(--accent);margin:26px 0 6px}
+.scroll-page h2:first-child{margin-top:0}
+.scroll-page .sub{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);margin-bottom:14px}
+.storm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:8px}
+.storm-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:4px;padding:12px 14px}
+.storm-card h4{font-family:var(--mono);font-size:13px;margin-bottom:6px}
+.storm-card .cls{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--watch)}
+.storm-card dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:11px;margin-top:8px}
+.storm-card dt{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);align-self:center}
+.storm-card dd{font-family:var(--mono)}
+#stormMsg{
+  font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8;
+  background:var(--panel);border:1px dashed var(--line);border-radius:4px;padding:14px 16px;
+}
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:10px}
+.chart h5{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--muted);margin-bottom:8px}
+.chart img{width:100%;height:auto;display:block;border-radius:2px;background:#0a0f0e;min-height:120px}
+.chart .cap{font-size:10px;color:var(--dim);margin-top:6px;font-family:var(--mono)}
+
+/* ---------- learn page ---------- */
+.learn{max-width:820px}
+.learn h3{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--ink);margin:22px 0 8px}
+.learn p{font-size:13px;line-height:1.75;color:var(--ink);margin-bottom:10px}
+.learn p b{color:var(--accent)}
+.learn table{border-collapse:collapse;font-family:var(--mono);font-size:11px;margin:10px 0}
+.learn th,.learn td{border:1px solid var(--line);padding:5px 10px;text-align:left}
+.learn th{color:var(--muted);font-size:9px;letter-spacing:.15em}
+.learn .chip{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* ---------- footer ---------- */
+footer{
+  flex-shrink:0;display:flex;gap:18px;flex-wrap:wrap;align-items:center;
+  padding:6px 16px;border-top:1px solid var(--line);background:var(--panel);
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);
+}
+footer .dot{color:var(--accent-dim)}
+
+@media(max-width:760px){
+  aside{position:absolute;z-index:1100;height:100%;transform:translateX(-100%);transition:transform .2s}
+  aside.open{transform:none}
+  #sideBtn{display:inline-block}
+  #clock{min-width:0}
+}
+#sideBtn{display:none;font-family:var(--mono);color:var(--accent);font-size:16px;padding:2px 8px;border:1px solid var(--line);border-radius:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="sideBtn" aria-label="Toggle panel">≡</button>
+  <div>
+    <div class="brand">SKYWATCH<span class="cursor">_</span></div>
+    <div class="tagline">PERSONAL WX OPS</div>
+  </div>
+  <nav>
+    <button data-page="map" class="active">MAP</button>
+    <button data-page="tropics">TROPICS + FRONTS</button>
+    <button data-page="learn">LEARN</button>
+  </nav>
+  <div id="clock"><span class="local">--:--:--</span><br><span class="utc">--:--:--Z</span></div>
+</header>
+
+<main>
+  <!-- ============ MAP PAGE ============ -->
+  <div class="page active" id="page-map">
+    <aside id="sidebar">
+      <div>
+        <div class="sec-title">OVERLAYS</div>
+        <button class="toggle on" id="tgRadar">
+          <span><span class="t-name">Radar</span><span class="t-sub">NEXRAD</span></span>
+          <span class="lamp"></span>
+        </button>
+        <button class="toggle" id="tgSat">
+          <span><span class="t-name">Clouds</span><span class="t-sub">IR SAT</span></span>
+          <span class="lamp"></span>
+        </button>
+        <button class="toggle on" id="tgAlerts">
+          <span><span class="t-name">Alerts</span><span class="t-sub">NWS</span></span>
+          <span class="lamp"></span>
+        </button>
+      </div>
+      <div>
+        <div class="sec-title">STATIONS</div>
+        <div class="seg" id="stnMode">
+          <button data-mode="temp" class="active">TEMP</button>
+          <button data-mode="wind">WIND</button>
+          <button data-mode="off">OFF</button>
+        </div>
+      </div>
+      <div class="statusline">
+        RADAR <b id="stRadar">…</b><br>
+        ALERTS <b id="stAlerts">…</b><br>
+        NEXT REFRESH <b id="stRefresh">–</b>
+      </div>
+      <div class="hint">CLICK ANYWHERE FOR A POINT FORECAST</div>
+    </aside>
+
+    <div class="map-wrap">
+      <div id="map"></div>
+
+      <div class="console">
+        <button id="playBtn" title="Play / pause radar loop">▶</button>
+        <span id="frameTime">–</span>
+        <div id="frameBar"><div id="frameFill"></div></div>
+        <div class="legend">
+          <span class="lab">REFLECTIVITY (dBZ)</span>
+          <span class="sw" style="background:linear-gradient(90deg,#0b3d34,#1fa38a)"></span><span>LIGHT</span>
+          <span class="sw" style="background:linear-gradient(90deg,#31c48d,#ffe066)"></span><span>MOD</span>
+          <span class="sw" style="background:linear-gradient(90deg,#ffb14d,#ff7043)"></span><span>HEAVY</span>
+          <span class="sw" style="background:linear-gradient(90deg,#ff5d5d,#c2185b)"></span><span>SEVERE</span>
+        </div>
+      </div>
+
+      <div id="fcPanel">
+        <div class="fc-head">
+          <div>
+            <h3>Forecast</h3>
+            <div class="coords" id="fcCoords">–</div>
+          </div>
+          <button id="fcClose" aria-label="Close forecast">✕</button>
+        </div>
+        <div class="fc-body">
+          <div class="fc-now" id="fcNow"></div>
+          <div class="fc-sub">NEXT 48 HOURS — TEMP °F</div>
+          <canvas id="spark" width="600" height="180"></canvas>
+          <div class="fc-sub">7-DAY OUTLOOK</div>
+          <div id="fcDays"><div class="fc-msg">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TROPICS + FRONTS PAGE ============ -->
+  <div class="page" id="page-tropics">
+    <div class="scroll-page">
+      <h2>ACTIVE TROPICAL CYCLONES</h2>
+      <div class="sub">NHC CURRENTSTORMS.JSON · ATLANTIC / E-PAC / C-PAC</div>
+      <div class="storm-grid" id="stormGrid"></div>
+      <div id="stormMsg" hidden></div>
+
+      <h2>OUTLOOKS + SURFACE CHARTS</h2>
+      <div class="sub">NHC TROPICAL WEATHER OUTLOOK · WPC SURFACE ANALYSIS + FRONTS</div>
+      <div class="chart-grid">
+        <div class="chart">
+          <h5>ATLANTIC — 7-DAY TROPICAL OUTLOOK</h5>
+          <img data-src="https://www.nhc.noaa.gov/xgtwo/two_atl_7d0.png" alt="NHC Atlantic 7-day tropical weather outlook" loading="lazy">
+          <div class="cap">SOURCE NHC.NOAA.GOV</div>
+        </div>
+        <div class="chart">
+          <h5>E. PACIFIC — 7-DAY TROPICAL OUTLOOK</h5>
+          <img data-src="https://www.nhc.noaa.gov/xgtwo/two_pac_7d0.png" alt="NHC Eastern Pacific 7-day tropical weather outlook" loading="lazy">
+          <div class="cap">SOURCE NHC.NOAA.GOV</div>
+        </div>
+        <div class="chart">
+          <h5>US SURFACE ANALYSIS — FRONTS + PRESSURE</h5>
+          <img data-src="https://www.wpc.ncep.noaa.gov/sfc/namussfcwbg.gif" alt="WPC US surface analysis with fronts and pressure centers" loading="lazy">
+          <div class="cap">SOURCE WPC.NCEP.NOAA.GOV</div>
+        </div>
+        <div class="chart">
+          <h5>FORECAST FRONTS — DAY 1</h5>
+          <img data-src="https://www.wpc.ncep.noaa.gov/noaa/noaad1.gif" alt="WPC day 1 forecast fronts chart" loading="lazy">
+          <div class="cap">SOURCE WPC.NCEP.NOAA.GOV</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LEARN PAGE ============ -->
+  <div class="page" id="page-learn">
+    <div class="scroll-page learn">
+      <h2>LEARN</h2>
+      <div class="sub">FIELD NOTES FOR READING THE BOARD</div>
+
+      <h3>RADAR REFLECTIVITY (dBZ)</h3>
+      <p>Weather radar measures <b>reflectivity</b> — how much of the transmitted beam bounces back off precipitation — in decibels of Z (dBZ). Higher dBZ generally means heavier precipitation, though bright bands, hail, and beam artifacts can inflate values.</p>
+      <table>
+        <tr><th>DBZ</th><th>ROUGHLY MEANS</th></tr>
+        <tr><td><span class="chip" style="background:#1fa38a"></span>10–25</td><td>Light rain, drizzle, flurries</td></tr>
+        <tr><td><span class="chip" style="background:#ffe066"></span>25–40</td><td>Moderate rain / steady snow</td></tr>
+        <tr><td><span class="chip" style="background:#ff7043"></span>40–50</td><td>Heavy rain, small hail possible</td></tr>
+        <tr><td><span class="chip" style="background:#ff5d5d"></span>50+</td><td>Severe storm cores, large hail likely</td></tr>
+      </table>
+
+      <h3>WATCH VS. WARNING</h3>
+      <p>A <b>watch</b> means conditions are favorable — stay alert. A <b>warning</b> means the hazard is occurring or imminent — act now. On the map, warnings render hot (red), watches amber, advisories and statements yellow. Click any polygon for the full NWS alert text.</p>
+
+      <h3>TROPICAL CLASSIFICATIONS</h3>
+      <table>
+        <tr><th>CLASS</th><th>MAX SUSTAINED WIND</th></tr>
+        <tr><td>Tropical Depression</td><td>&le; 38 mph</td></tr>
+        <tr><td>Tropical Storm</td><td>39–73 mph</td></tr>
+        <tr><td>Hurricane (Cat 1–2)</td><td>74–110 mph</td></tr>
+        <tr><td>Major Hurricane (Cat 3–5)</td><td>111+ mph</td></tr>
+      </table>
+      <p>Intensity is only part of the story — storm surge, rainfall flooding, and forward speed often matter more than the category number.</p>
+
+      <h3>READING A SURFACE CHART</h3>
+      <p>On WPC surface charts: <b>blue triangles</b> mark cold fronts (pointing the direction of travel), <b>red half-circles</b> mark warm fronts, alternating symbols mark stationary fronts, and purple marks occlusions. An <b>L</b> is a low-pressure center — lift, clouds, weather; an <b>H</b> is a high — subsidence and generally quieter skies.</p>
+
+      <h3>IR SATELLITE</h3>
+      <p>Infrared imagery senses cloud-top temperature. Colder tops sit higher in the troposphere, so the brightest/coldest signatures usually flag deep convection — tall storms with heavy rain potential — and it works day and night.</p>
+
+      <h3>WHERE THE DATA COMES FROM</h3>
+      <p>Radar and IR satellite tiles from <b>RainViewer</b> (NEXRAD-derived). Alert polygons from the <b>NWS API</b> (api.weather.gov). Station observations and point forecasts from <b>Open-Meteo</b>. Tropical cyclone data from the <b>National Hurricane Center</b>; surface and fronts charts from the <b>Weather Prediction Center</b>. Basemap © OpenStreetMap contributors, tiles by CARTO. All free, public, key-less endpoints.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>DATA NOAA / NWS · RAINVIEWER · OPEN-METEO · NHC / WPC</span>
+  <span class="dot">●</span>
+  <span>MAP © OPENSTREETMAP · CARTO</span>
+  <span class="dot">●</span>
+  <span>AUTO-REFRESH 5 MIN</span>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+"use strict";
+
+/* ============================================================
+   SKYWATCH — personal weather ops dashboard
+   All data from free, key-less public APIs:
+   RainViewer, api.weather.gov, Open-Meteo, NHC/WPC.
+   ============================================================ */
+
+const REFRESH_MS = 5 * 60 * 1000;
+
+/* ---------- clock ---------- */
+const clockLocal = document.querySelector("#clock .local");
+const clockUtc   = document.querySelector("#clock .utc");
+function tickClock(){
+  const now = new Date();
+  const f = n => String(n).padStart(2,"0");
+  clockLocal.textContent = `${f(now.getHours())}:${f(now.getMinutes())}:${f(now.getSeconds())}`;
+  clockUtc.textContent   = `${f(now.getUTCHours())}:${f(now.getUTCMinutes())}:${f(now.getUTCSeconds())}Z`;
+}
+setInterval(tickClock,1000); tickClock();
+
+/* ---------- page nav ---------- */
+document.querySelectorAll("nav button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b===btn));
+    document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+btn.dataset.page));
+    if(btn.dataset.page==="map") map.invalidateSize();
+    if(btn.dataset.page==="tropics") loadTropics();
+  });
+});
+document.getElementById("sideBtn").addEventListener("click",
+  ()=>document.getElementById("sidebar").classList.toggle("open"));
+
+/* ---------- map ---------- */
+const map = L.map("map",{center:[38.5,-96.5],zoom:5,zoomControl:true,attributionControl:true});
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains:"abcd",maxZoom:19
+}).addTo(map);
+
+const paneRadar = map.createPane("radar"); paneRadar.style.zIndex = 410;
+const paneSat   = map.createPane("sat");   paneSat.style.zIndex   = 405;
+const paneAlert = map.createPane("alerts");paneAlert.style.zIndex = 420;
+
+/* ---------- RainViewer radar + IR satellite ---------- */
+const RV_API = "https://api.rainviewer.com/public/weather-maps.json";
+let rvHost = "", radarFrames = [], satFrames = [];
+let radarLayers = [], satLayer = null;
+let frameIdx = 0, playing = false, playTimer = null;
+
+const stRadar   = document.getElementById("stRadar");
+const stAlerts  = document.getElementById("stAlerts");
+const frameTime = document.getElementById("frameTime");
+const frameFill = document.getElementById("frameFill");
+const playBtn   = document.getElementById("playBtn");
+
+function radarUrl(path){ return `${rvHost}${path}/256/{z}/{x}/{y}/2/1_1.png`; }   // scheme 2, smoothed, snow mask
+function satUrl(path){   return `${rvHost}${path}/256/{z}/{x}/{y}/0/0_0.png`; }   // IR, raw
+
+async function loadRadar(){
+  stRadar.textContent = "…";
+  try{
+    const res = await fetch(RV_API);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    rvHost = data.host;
+    radarFrames = (data.radar?.past || []).slice(-10);
+    satFrames   = data.satellite?.infrared || [];
+
+    radarLayers.forEach(l=>map.removeLayer(l));
+    radarLayers = radarFrames.map(f=>L.tileLayer(radarUrl(f.path),{
+      pane:"radar",opacity:0,tileSize:256,zIndex:410
+    }));
+    if(toggles.radar) radarLayers.forEach(l=>l.addTo(map));
+
+    if(satLayer) map.removeLayer(satLayer);
+    if(satFrames.length){
+      satLayer = L.tileLayer(satUrl(satFrames[satFrames.length-1].path),{
+        pane:"sat",opacity:.55,tileSize:256
+      });
+      if(toggles.sat) satLayer.addTo(map);
+    }
+
+    frameIdx = radarFrames.length-1;
+    showFrame(frameIdx);
+    stRadar.textContent = "LIVE · "+radarFrames.length+" FR";
+  }catch(err){
+    stRadar.textContent = "OFFLINE";
+    frameTime.textContent = "RADAR OFFLINE";
+    console.warn("RainViewer:",err);
+  }
+}
+
+function showFrame(i){
+  if(!radarFrames.length) return;
+  frameIdx = (i+radarFrames.length)%radarFrames.length;
+  radarLayers.forEach((l,k)=>l.setOpacity(k===frameIdx && toggles.radar ? .72 : 0));
+  const t = new Date(radarFrames[frameIdx].time*1000);
+  const f = n=>String(n).padStart(2,"0");
+  frameTime.textContent = `${f(t.getHours())}:${f(t.getMinutes())} L / ${f(t.getUTCHours())}:${f(t.getUTCMinutes())}Z`;
+  frameFill.style.width = radarFrames.length>1 ? (frameIdx/(radarFrames.length-1)*100)+"%" : "100%";
+}
+function setPlaying(on){
+  playing = on;
+  playBtn.textContent = on ? "❚❚" : "▶";
+  clearInterval(playTimer);
+  if(on) playTimer = setInterval(()=>showFrame(frameIdx+1),650);
+}
+playBtn.addEventListener("click",()=>setPlaying(!playing));
+document.getElementById("frameBar").addEventListener("click",e=>{
+  if(!radarFrames.length) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  showFrame(Math.round((e.clientX-r.left)/r.width*(radarFrames.length-1)));
+});
+
+/* ---------- overlay toggles ---------- */
+const toggles = {radar:true,sat:false,alerts:true};
+function bindToggle(id,key,apply){
+  const el = document.getElementById(id);
+  el.addEventListener("click",()=>{
+    toggles[key] = !toggles[key];
+    el.classList.toggle("on",toggles[key]);
+    apply();
+  });
+}
+bindToggle("tgRadar","radar",()=>showFrame(frameIdx));
+bindToggle("tgSat","sat",()=>{
+  if(!satLayer) return;
+  if(toggles.sat) satLayer.addTo(map); else map.removeLayer(satLayer);
+});
+bindToggle("tgAlerts","alerts",()=>{
+  if(!alertLayer) return;
+  if(toggles.alerts) alertLayer.addTo(map); else map.removeLayer(alertLayer);
+});
+
+/* ---------- NWS alerts ---------- */
+let alertLayer = null;
+function alertColor(props){
+  const ev = (props.event||"").toLowerCase();
+  if(ev.includes("warning")) return "#ff5d5d";
+  if(ev.includes("watch"))   return "#ffb14d";
+  return "#ffe066";
+}
+async function loadAlerts(){
+  stAlerts.textContent = "…";
+  try{
+    const res = await fetch("https://api.weather.gov/alerts/active?status=actual&limit=500",{
+      headers:{Accept:"application/geo+json"}
+    });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    const withGeom = (data.features||[]).filter(f=>f.geometry);
+    if(alertLayer) map.removeLayer(alertLayer);
+    alertLayer = L.geoJSON({type:"FeatureCollection",features:withGeom},{
+      pane:"alerts",
+      style:f=>({color:alertColor(f.properties),weight:1.4,fillColor:alertColor(f.properties),fillOpacity:.14}),
+      onEachFeature:(f,layer)=>{
+        const p = f.properties;
+        layer.bindPopup(
+          `<div class="alert-pop"><h4 style="color:${alertColor(p)}">${p.event||"Alert"}</h4>`+
+          `<div class="meta">${p.senderName||""} · until ${p.ends?new Date(p.ends).toLocaleString():"–"}</div>`+
+          `<p style="margin-top:6px">${(p.headline||p.description||"").slice(0,320)}</p></div>`,
+          {maxWidth:300});
+      }
+    });
+    if(toggles.alerts) alertLayer.addTo(map);
+    stAlerts.textContent = withGeom.length+" ACTIVE";
+  }catch(err){
+    stAlerts.textContent = "OFFLINE";
+    console.warn("NWS alerts:",err);
+  }
+}
+
+/* ---------- station network (~50 cities, Open-Meteo batch) ---------- */
+const STATIONS = [
+["NYC",40.71,-74.01],["BOS",42.36,-71.06],["PHL",39.95,-75.17],["DCA",38.90,-77.04],
+["BWI",39.29,-76.61],["PIT",40.44,-79.99],["BUF",42.89,-78.88],["CLE",41.50,-81.69],
+["CMH",39.96,-83.00],["CVG",39.10,-84.51],["DTW",42.33,-83.05],["IND",39.77,-86.16],
+["ORD",41.88,-87.63],["MKE",43.04,-87.91],["MSP",44.98,-93.27],["DSM",41.59,-93.62],
+["STL",38.63,-90.20],["MCI",39.10,-94.58],["OMA",41.26,-95.93],["FAR",46.88,-96.79],
+["BIL",45.78,-108.50],["DEN",39.74,-104.99],["SLC",40.76,-111.89],["BOI",43.62,-116.20],
+["SEA",47.61,-122.33],["PDX",45.52,-122.68],["SFO",37.77,-122.42],["SMF",38.58,-121.49],
+["LAX",34.05,-118.24],["SAN",32.72,-117.16],["LAS",36.17,-115.14],["PHX",33.45,-112.07],
+["ABQ",35.08,-106.65],["ELP",31.76,-106.49],["DFW",32.78,-96.80],["SAT",29.42,-98.49],
+["AUS",30.27,-97.74],["IAH",29.76,-95.37],["OKC",35.47,-97.52],["ICT",37.69,-97.34],
+["MSY",29.95,-90.07],["MEM",35.15,-90.05],["BNA",36.16,-86.78],["BHM",33.52,-86.80],
+["ATL",33.75,-84.39],["JAX",30.33,-81.66],["MCO",28.54,-81.38],["TPA",27.95,-82.46],
+["MIA",25.76,-80.19],["CLT",35.23,-80.84],["RDU",35.78,-78.64],["ORF",36.85,-76.29]
+];
+let stnMode = "temp";
+let stnMarkers = [], stnData = null;
+
+function tempColor(t){
+  if(t<=10) return "#b18cff";
+  if(t<=32) return "#6fb7ff";
+  if(t<=50) return "#39c2a5";
+  if(t<=70) return "#ffe066";
+  if(t<=85) return "#ffb14d";
+  return "#ff5d5d";
+}
+function windArrow(deg){
+  // wind_direction is where it blows FROM; arrow points where it goes
+  return ["↓","↙","←","↖","↑","↗","→","↘"][Math.round(((deg+180)%360)/45)%8];
+}
+function renderStations(){
+  stnMarkers.forEach(m=>map.removeLayer(m));
+  stnMarkers = [];
+  if(stnMode==="off" || !stnData) return;
+  STATIONS.forEach(([code],i)=>{
+    const cur = stnData[i]?.current;
+    if(!cur) return;
+    let html;
+    if(stnMode==="temp"){
+      const t = Math.round(cur.temperature_2m);
+      html = `<div class="stn" style="color:${tempColor(t)}">${t}°<small>${code}</small></div>`;
+    }else{
+      const w = Math.round(cur.wind_speed_10m);
+      html = `<div class="stn" style="color:${w>=25?"#ffb14d":"#cfe7e2"}">${windArrow(cur.wind_direction_10m)}${w}<small>${code}</small></div>`;
+    }
+    const m = L.marker([STATIONS[i][1],STATIONS[i][2]],{
+      icon:L.divIcon({className:"",html,iconSize:null,iconAnchor:[16,10]}),
+      interactive:false,keyboard:false
+    }).addTo(map);
+    stnMarkers.push(m);
+  });
+}
+async function loadStations(){
+  try{
+    const lats = STATIONS.map(s=>s[1]).join(",");
+    const lons = STATIONS.map(s=>s[2]).join(",");
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}`+
+      `&current=temperature_2m,wind_speed_10m,wind_direction_10m`+
+      `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    stnData = Array.isArray(data) ? data : [data];
+    renderStations();
+  }catch(err){
+    console.warn("Open-Meteo stations:",err);
+  }
+}
+document.querySelectorAll("#stnMode button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    stnMode = btn.dataset.mode;
+    document.querySelectorAll("#stnMode button").forEach(b=>b.classList.toggle("active",b===btn));
+    renderStations();
+  });
+});
+
+/* ---------- point forecast ---------- */
+const fcPanel = document.getElementById("fcPanel");
+const WMO = {0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Rime fog",
+  51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",56:"Frz drizzle",57:"Frz drizzle",
+  61:"Light rain",63:"Rain",65:"Heavy rain",66:"Frz rain",67:"Frz rain",
+  71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow grains",
+  80:"Showers",81:"Showers",82:"Heavy showers",85:"Snow showers",86:"Snow showers",
+  95:"Thunderstorm",96:"T-storm w/ hail",99:"T-storm w/ hail"};
+const wmoText = c => WMO[c] || "–";
+
+map.on("click",e=>loadPointForecast(e.latlng.lat,e.latlng.lng));
+document.getElementById("fcClose").addEventListener("click",()=>fcPanel.classList.remove("open"));
+
+async function loadPointForecast(lat,lon){
+  fcPanel.classList.add("open");
+  document.getElementById("fcCoords").textContent = `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+  document.getElementById("fcNow").innerHTML = "";
+  document.getElementById("fcDays").innerHTML = '<div class="fc-msg">Loading…</div>';
+  drawSpark([]);
+  try{
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`+
+      `&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_direction_10m,relative_humidity_2m,weather_code`+
+      `&hourly=temperature_2m&forecast_hours=48`+
+      `&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=7`+
+      `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const d = await res.json();
+
+    const c = d.current;
+    document.getElementById("fcNow").innerHTML =
+      `<span class="big">${Math.round(c.temperature_2m)}°</span>`+
+      `<span class="desc">${wmoText(c.weather_code)}<br>`+
+      `FEELS ${Math.round(c.apparent_temperature)}° · RH ${c.relative_humidity_2m}%<br>`+
+      `WIND ${windArrow(c.wind_direction_10m)} ${Math.round(c.wind_speed_10m)} MPH</span>`;
+
+    drawSpark(d.hourly.temperature_2m||[]);
+
+    const days = d.daily;
+    document.getElementById("fcDays").innerHTML = days.time.map((t,i)=>{
+      const day = new Date(t+"T12:00:00").toLocaleDateString(undefined,{weekday:"short"}).toUpperCase();
+      return `<div class="day-row"><span class="d">${i===0?"TODAY":day}</span>`+
+        `<span class="wx">${wmoText(days.weather_code[i])}</span>`+
+        `<span class="hi">${Math.round(days.temperature_2m_max[i])}°</span>`+
+        `<span class="lo">${Math.round(days.temperature_2m_min[i])}°</span></div>`;
+    }).join("");
+  }catch(err){
+    document.getElementById("fcDays").innerHTML = '<div class="fc-msg">FORECAST UNAVAILABLE — CHECK CONNECTION</div>';
+    console.warn("Point forecast:",err);
+  }
+}
+
+function drawSpark(temps){
+  const cv = document.getElementById("spark");
+  const ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  if(!temps.length) return;
+  const min = Math.min(...temps), max = Math.max(...temps), span = (max-min)||1;
+  const px = i => 14 + i/(temps.length-1)*(W-28);
+  const py = t => H-24 - (t-min)/span*(H-52);
+
+  ctx.strokeStyle = "#1c2a27"; ctx.lineWidth = 1;
+  for(let i=0;i<temps.length;i+=6){
+    ctx.beginPath(); ctx.moveTo(px(i),8); ctx.lineTo(px(i),H-20); ctx.stroke();
+  }
+  ctx.beginPath();
+  temps.forEach((t,i)=>i?ctx.lineTo(px(i),py(t)):ctx.moveTo(px(i),py(t)));
+  ctx.strokeStyle = "#39c2a5"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.stroke();
+  ctx.lineTo(px(temps.length-1),H-24); ctx.lineTo(px(0),H-24); ctx.closePath();
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"rgba(57,194,165,.25)"); g.addColorStop(1,"rgba(57,194,165,0)");
+  ctx.fillStyle = g; ctx.fill();
+
+  ctx.font = "600 20px ui-monospace,Menlo,monospace"; ctx.fillStyle = "#5f7a74";
+  ctx.fillText(Math.round(max)+"°",6,py(max)-6<18?18:py(max)-6);
+  ctx.fillText(Math.round(min)+"°",6,H-6);
+  ctx.fillStyle = "#3d524d"; ctx.font = "16px ui-monospace,Menlo,monospace";
+  ctx.fillText("NOW",px(0)-4,H-6);
+  ctx.fillText("+24H",px(Math.min(24,temps.length-1))-18,H-6);
+  ctx.fillText("+48H",W-44,H-6);
+}
+
+/* ---------- tropics + fronts ---------- */
+/* NHC serves CurrentStorms.json without CORS headers, so a direct browser
+   fetch usually fails. Try direct first (in case that ever changes), then a
+   free key-less CORS mirror, then fall back to a graceful message. */
+const NHC_URL = "https://www.nhc.noaa.gov/CurrentStorms.json";
+const NHC_SOURCES = [
+  NHC_URL,
+  "https://api.allorigins.win/raw?url="+encodeURIComponent(NHC_URL)
+];
+let tropicsLoadedAt = 0;
+
+async function loadTropics(force){
+  // lazy refresh: charts + storms at most once per refresh window
+  if(!force && Date.now()-tropicsLoadedAt < REFRESH_MS) return;
+  tropicsLoadedAt = Date.now();
+
+  document.querySelectorAll("#page-tropics img[data-src]").forEach(img=>{
+    img.src = img.dataset.src+"?t="+Math.floor(Date.now()/60000);
+  });
+
+  const grid = document.getElementById("stormGrid");
+  const msg  = document.getElementById("stormMsg");
+  let data = null;
+  for(const src of NHC_SOURCES){
+    try{
+      const res = await fetch(src,{signal:AbortSignal.timeout(12000)});
+      if(!res.ok) continue;
+      data = await res.json();
+      if(data && Array.isArray(data.activeStorms)) break;
+      data = null;
+    }catch(_){ /* try next source */ }
+  }
+
+  if(!data){
+    grid.innerHTML = "";
+    msg.hidden = false;
+    msg.innerHTML =
+      "LIVE STORM FEED UNAVAILABLE (NHC BLOCKS CROSS-ORIGIN BROWSER REQUESTS).<br>"+
+      'THE OUTLOOK CHARTS BELOW ARE LIVE. FULL ADVISORIES: '+
+      '<a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener" style="color:var(--accent)">NHC.NOAA.GOV</a>';
+    return;
+  }
+
+  msg.hidden = true;
+  if(!data.activeStorms.length){
+    grid.innerHTML = "";
+    msg.hidden = false;
+    msg.textContent = "NO ACTIVE TROPICAL CYCLONES IN THE ATLANTIC OR EASTERN/CENTRAL PACIFIC.";
+    return;
+  }
+  grid.innerHTML = data.activeStorms.map(s=>`
+    <div class="storm-card">
+      <div class="cls">${(s.classification||"").toUpperCase()} · ${(s.binNumber||"").toUpperCase()}</div>
+      <h4>${s.name||"UNNAMED"}</h4>
+      <dl>
+        <dt>WIND</dt><dd>${s.intensity?s.intensity+" KT":"–"}</dd>
+        <dt>PRES</dt><dd>${s.pressure?s.pressure+" MB":"–"}</dd>
+        <dt>MOVING</dt><dd>${s.movementDir!=null?s.movementDir+"° @ "+s.movementSpeed+" KT":"–"}</dd>
+        <dt>POS</dt><dd>${s.latitudeNumeric!=null?s.latitudeNumeric.toFixed(1)+", "+s.longitudeNumeric.toFixed(1):"–"}</dd>
+        <dt>UPDATE</dt><dd>${s.lastUpdate?new Date(s.lastUpdate).toUTCString().slice(17,22)+"Z":"–"}</dd>
+      </dl>
+    </div>`).join("");
+}
+
+/* ---------- refresh cycle ---------- */
+const stRefresh = document.getElementById("stRefresh");
+let nextRefreshAt = Date.now()+REFRESH_MS;
+function refreshAll(){
+  loadRadar();
+  loadAlerts();
+  loadStations();
+  if(document.getElementById("page-tropics").classList.contains("active")) loadTropics(true);
+  nextRefreshAt = Date.now()+REFRESH_MS;
+}
+setInterval(refreshAll,REFRESH_MS);
+setInterval(()=>{
+  const s = Math.max(0,Math.round((nextRefreshAt-Date.now())/1000));
+  stRefresh.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+},1000);
+
+refreshAll();
+setPlaying(false);
+</script>
+</body>
+</html>
