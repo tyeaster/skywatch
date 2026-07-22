@@ -344,19 +344,33 @@ footer{
 }
 footer .dot{color:var(--accent-dim)}
 
-@media(max-width:760px){
-  aside{position:absolute;z-index:1100;height:100%;transform:translateX(-100%);transition:transform .2s}
-  aside.open{transform:none}
-  #sideBtn{display:inline-block}
-  #clock{min-width:0}
+/* mobile-menu button — base state hidden; the media query below (which comes
+   AFTER this rule, so it wins at equal specificity) reveals it on the map page */
+#sideBtn{
+  display:none;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:#04110e;
+  background:var(--accent);padding:6px 11px;border-radius:3px;font-weight:700;
 }
-#sideBtn{display:none;font-family:var(--mono);color:var(--accent);font-size:16px;padding:2px 8px;border:1px solid var(--line);border-radius:3px}
+#sideBtn:active{opacity:.8}
+#sidebarBackdrop{display:none}
+@media(max-width:760px){
+  aside{position:absolute;z-index:1100;top:0;left:0;height:100%;max-width:86vw;
+    transform:translateX(-100%);transition:transform .2s;box-shadow:6px 0 24px rgba(0,0,0,.6)}
+  aside.open{transform:none}
+  #sideBtn.avail{display:inline-flex}
+  #clock{min-width:0;font-size:11px}
+  header{gap:10px}
+  nav{gap:2px}
+  nav button{padding:6px 8px;font-size:10px;letter-spacing:.06em}
+  /* dim backdrop when the panel is open; tap it to close */
+  #sidebarBackdrop.show{display:block;position:absolute;inset:0;z-index:1050;background:rgba(0,0,0,.45)}
+}
 </style>
 </head>
 <body>
 
 <header>
-  <button id="sideBtn" aria-label="Toggle panel">≡</button>
+  <button id="sideBtn" aria-label="Toggle layers panel">☰ LAYERS</button>
   <div>
     <div class="brand">SKYWATCH<span class="cursor">_</span></div>
     <div class="tagline">PERSONAL WX OPS</div>
@@ -372,6 +386,7 @@ footer .dot{color:var(--accent-dim)}
 <main>
   <!-- ============ MAP PAGE ============ -->
   <div class="page active" id="page-map">
+    <div id="sidebarBackdrop"></div>
     <aside id="sidebar">
       <div>
         <div class="sec-title">FAVORITE</div>
@@ -623,10 +638,16 @@ document.querySelectorAll("nav button").forEach(btn=>{
   btn.addEventListener("click",()=>{
     document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b===btn));
     document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+btn.dataset.page));
+    setSidebar(false);                                   // close the mobile panel on page change
+    updateSideBtn(btn.dataset.page);                     // the ☰ LAYERS button only applies to the map
     if(btn.dataset.page==="map") map.invalidateSize();
     if(btn.dataset.page==="tropics"){ loadTropics(); routeStorm(); }
   });
 });
+function updateSideBtn(page){
+  document.getElementById("sideBtn").classList.toggle("avail", page==="map");
+}
+updateSideBtn("map");
 
 /* ---------- storm subpage routing (#storm/<id>) ---------- */
 function routeStorm(){
@@ -643,8 +664,15 @@ function routeStorm(){
   }
 }
 window.addEventListener("hashchange",routeStorm);
-document.getElementById("sideBtn").addEventListener("click",
-  ()=>document.getElementById("sidebar").classList.toggle("open"));
+/* ---------- mobile layers panel ---------- */
+function setSidebar(open){
+  document.getElementById("sidebar").classList.toggle("open",open);
+  document.getElementById("sidebarBackdrop").classList.toggle("show",open);
+}
+document.getElementById("sideBtn").addEventListener("click",()=>{
+  setSidebar(!document.getElementById("sidebar").classList.contains("open"));
+});
+document.getElementById("sidebarBackdrop").addEventListener("click",()=>setSidebar(false));
 
 /* ---------- map ---------- */
 const map = L.map("map",{center:[38.5,-96.5],zoom:5,zoomControl:true,attributionControl:true});
@@ -1198,7 +1226,7 @@ function renderFavCard(f, wx, alerts){
   favCard.querySelector(".view").addEventListener("click",()=>{
     map.flyTo([f.lat,f.lon], Math.max(map.getZoom(),8), {duration:.8});
     loadPointForecast(f.lat, f.lon);
-    document.getElementById("sidebar").classList.remove("open");
+    setSidebar(false);
   });
   favCard.querySelector(".rm").addEventListener("click",clearFavorite);
 }
@@ -1669,19 +1697,30 @@ function collectProductLinks(s){
 function coneCandidates(s){
   const cb="?t="+Math.floor(Date.now()/3600000);           // hourly cache-buster
   const wsrv=u=>"https://wsrv.nl/?url="+encodeURIComponent(u+cb)+"&output=png";
-  const list=[];
-  // 1) any direct image url the feed itself supplies
+  const list=[], push=u=>{ list.push(u+cb); list.push(wsrv(u)); };  // direct, then proxied
+
+  // collect every NHC url anywhere in the storm object (product objects nest urls)
+  const urls=[];
   for(const k in s){ const v=s[k];
-    if(v&&typeof v==="object"&&typeof v.url==="string"&&/\.(png|gif|jpe?g)$/i.test(v.url)&&/cone|5day|track/i.test(v.url)){
-      list.push(v.url+cb); list.push(wsrv(v.url)); }
+    if(typeof v==="string"&&/nhc\.noaa\.gov/.test(v)) urls.push(v);
+    else if(v&&typeof v==="object") for(const kk in v){ if(typeof v[kk]==="string"&&/nhc\.noaa\.gov/.test(v[kk])) urls.push(v[kk]); }
   }
-  // 2) the two conventional NHC storm-graphics url patterns, direct then proxied
-  if(s.id){
-    const ID=s.id.toUpperCase();
-    const pats=[];
-    if(s.binNumber) pats.push(`https://www.nhc.noaa.gov/storm_graphics/${s.binNumber.toUpperCase()}/${ID}_5day_cone_with_line_and_wind.png`);
-    pats.push(`https://www.nhc.noaa.gov/storm_graphics/api/${ID}_5day_cone_with_line_and_wind.png`);
-    pats.forEach(u=>{ list.push(u+cb); list.push(wsrv(u)); });
+  // 1) direct cone/graphic images the feed already supplies
+  urls.filter(u=>/\.(png|gif|jpe?g)$/i.test(u)&&/cone|5day|track/i.test(u)).forEach(push);
+  // 2) derive the exact storm ID + graphics dir from any GIS url in the feed
+  //    (more reliable than composing from s.id/s.binNumber, which can differ)
+  let id=null, bin=null;
+  for(const u of urls){
+    let m=u.match(/storm_graphics\/([A-Za-z]{2}\d)\/([A-Za-z]{2}\d{6})/);
+    if(m){ bin=m[1].toUpperCase(); id=m[2].toUpperCase(); break; }
+    m=u.match(/([A-Za-z]{2}\d{6})/); if(m&&!id) id=m[1].toUpperCase();
+  }
+  if(!id&&s.id) id=s.id.toUpperCase();
+  if(!bin&&s.binNumber) bin=s.binNumber.toUpperCase();
+  // 3) the conventional NHC cone-image URL patterns
+  if(id){
+    if(bin) push(`https://www.nhc.noaa.gov/storm_graphics/${bin}/${id}_5day_cone_with_line_and_wind.png`);
+    push(`https://www.nhc.noaa.gov/storm_graphics/api/${id}_5day_cone_with_line_and_wind.png`);
   }
   return list;
 }
