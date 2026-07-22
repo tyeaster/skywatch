@@ -13,7 +13,13 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
   - ~50 city stations with switchable TEMP / WIND readouts
   - Click anywhere for a point forecast: current conditions, 48-hour temperature sparkline (canvas), and 7-day outlook
   - **Favorite location** — search any place by name and pin it. A sidebar card tracks its current conditions, today's hi/lo, and any active NWS warnings/advisories (color-coded, with a red glow when something is active). Saved in your browser (localStorage) so it persists across visits; "View on map" flies there and opens the full forecast.
-- **Tropics + Fronts** — active tropical cyclone cards from NHC, plus live NHC 7-day tropical outlooks and WPC surface-analysis / forecast-fronts charts
+- **Tropics + Fronts** — active tropical cyclone cards from NHC, plus live NHC 7-day tropical outlooks and WPC surface-analysis / forecast-fronts charts. **Tap any storm** for a full research briefing subpage (deep-linkable via `#storm/<id>`):
+  - Current intensity in kt / mph / km/h, min central pressure, and Saffir-Simpson category
+  - A category ladder showing exactly what wind speed it must reach for the next category
+  - "How fast is it developing?" — a wind + pressure history chart built from snapshots recorded locally on each visit, with an intensification rate (kt/24h) and a rapid-intensification flag
+  - Position, motion, nearest coastline, and a straight-line path projection with an illustrative uncertainty cone (using NHC average track-error radii), alongside the official NHC forecast cone image
+  - Plain-language impact guidance and auto-collected links to the authoritative NHC advisories and graphics
+  - Every value is labeled by source — official NHC vs. SKYWATCH-computed — so estimates are never mistaken for the official forecast
 - **Learn** — field notes on reading radar reflectivity, watches vs. warnings, tropical classifications, surface charts, and IR imagery
 - Auto-refreshes all data every 5 minutes
 
