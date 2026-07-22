@@ -11,6 +11,7 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
   - IR satellite cloud overlay
   - Live NWS alert polygons, color-coded by severity (warning / watch / advisory), click for details
   - ~50 city stations with switchable TEMP / WIND readouts
+  - **Forecast model field** — a real numerical-weather-model layer (Open-Meteo's GFS / ECMWF-IFS / ICON blend) sampled on a grid across the current view and painted as a smooth colored field, with a variable picker (wind, gusts, precipitation, CAPE, sea-level pressure, temperature), a forecast-time slider out to +72 h, and a legend. This is genuine model output, distinct from the statistical baseline on the storm pages.
   - Click anywhere for a point forecast: current conditions, 48-hour temperature sparkline (canvas), and 7-day outlook
   - **Favorite location** — search any place by name and pin it. A sidebar card tracks its current conditions, today's hi/lo, and any active NWS warnings/advisories (color-coded, with a red glow when something is active). Saved in your browser (localStorage) so it persists across visits; "View on map" flies there and opens the full forecast.
 - **Tropics + Fronts** — active tropical cyclone cards from NHC, plus live NHC 7-day tropical outlooks and WPC surface-analysis / forecast-fronts charts. **Tap any storm** for a full research briefing subpage (deep-linkable via `#storm/<id>`):
