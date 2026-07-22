@@ -91,6 +91,56 @@ aside{
   border-top:1px solid var(--line);padding-top:10px;margin-top:auto;line-height:1.8;
 }
 
+/* ---------- favorite location ---------- */
+#favForm{position:relative;display:flex;gap:5px}
+#favInput{
+  flex:1;min-width:0;padding:7px 9px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+  color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:3px;
+}
+#favInput:focus{outline:none;border-color:var(--accent-dim)}
+#favInput::placeholder{color:var(--dim);letter-spacing:.08em}
+#favForm button{
+  flex-shrink:0;width:32px;border:1px solid var(--line);border-radius:3px;
+  color:var(--accent);background:var(--panel-2);font-size:13px;
+}
+#favForm button:hover{background:rgba(57,194,165,.1)}
+#favResults{margin-top:5px;border:1px solid var(--line);border-radius:3px;overflow:hidden;display:none}
+#favResults.show{display:block}
+.fav-opt{
+  display:block;width:100%;text-align:left;padding:6px 9px;
+  font-family:var(--mono);font-size:11px;color:var(--ink);background:var(--panel-2);
+}
+.fav-opt+.fav-opt{border-top:1px solid var(--line)}
+.fav-opt:hover{background:rgba(57,194,165,.09);color:var(--accent)}
+.fav-opt small{display:block;font-size:9px;letter-spacing:.1em;color:var(--muted);margin-top:1px}
+.fav-note{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);padding:6px 3px}
+
+.fav-card{margin-top:8px;border:1px solid var(--line);border-radius:4px;background:var(--panel-2);padding:10px 11px}
+.fav-card.alerting{border-color:var(--warn);box-shadow:0 0 0 1px rgba(255,93,93,.25)}
+.fav-place{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ink);word-break:break-word}
+.fav-place small{display:block;font-size:9px;font-weight:400;letter-spacing:.12em;color:var(--muted);margin-top:2px}
+.fav-cur{display:flex;align-items:baseline;gap:9px;margin:8px 0 2px}
+.fav-cur .t{font-family:var(--mono);font-size:26px;font-weight:700}
+.fav-cur .d{font-size:11px;color:var(--muted);line-height:1.4}
+.fav-meta{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.04em;line-height:1.7}
+.fav-alerts{margin-top:9px;display:flex;flex-direction:column;gap:4px}
+.fav-alert{
+  font-family:var(--mono);font-size:10px;letter-spacing:.03em;line-height:1.35;
+  border-left:3px solid var(--warn);background:rgba(255,93,93,.08);
+  padding:4px 8px;border-radius:2px;color:var(--ink);
+}
+.fav-alert .ev{font-weight:700;display:block}
+.fav-alert .ax{color:var(--muted);font-size:9px;letter-spacing:.06em}
+.fav-noalert{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--accent-dim);margin-top:8px}
+.fav-actions{display:flex;gap:6px;margin-top:10px}
+.fav-actions button{
+  flex:1;padding:5px 0;font-family:var(--mono);font-size:9px;letter-spacing:.15em;
+  border:1px solid var(--line);border-radius:3px;color:var(--muted);background:var(--panel);
+}
+.fav-actions button:hover{color:var(--accent);border-color:var(--accent-dim)}
+.fav-actions .rm:hover{color:var(--warn);border-color:var(--warn)}
+.fav-pin{font-size:20px;line-height:1;text-shadow:0 0 5px rgba(57,194,165,.9),0 1px 2px #000}
+
 /* ---------- map ---------- */
 .map-wrap{flex:1;position:relative;min-width:0}
 #map{position:absolute;inset:0;background:#0a0f0e}
@@ -237,6 +287,15 @@ footer .dot{color:var(--accent-dim)}
   <!-- ============ MAP PAGE ============ -->
   <div class="page active" id="page-map">
     <aside id="sidebar">
+      <div>
+        <div class="sec-title">FAVORITE</div>
+        <form id="favForm" autocomplete="off">
+          <input id="favInput" placeholder="Track a place…" aria-label="Search for a favorite location">
+          <button type="submit" title="Search">⌕</button>
+        </form>
+        <div id="favResults"></div>
+        <div id="favCard"></div>
+      </div>
       <div>
         <div class="sec-title">OVERLAYS</div>
         <button class="toggle on" id="tgRadar">
@@ -722,6 +781,156 @@ function drawSpark(temps){
   ctx.fillText("+48H",W-44,H-6);
 }
 
+/* ---------- favorite location ---------- */
+/* All free + key-less: Open-Meteo geocoding & forecast, NWS point alerts (US). */
+const FAV_KEY    = "skywatch.fav";
+const favInput   = document.getElementById("favInput");
+const favForm    = document.getElementById("favForm");
+const favResults = document.getElementById("favResults");
+const favCard    = document.getElementById("favCard");
+let favMarker = null;
+
+function getFavorite(){
+  try{ return JSON.parse(localStorage.getItem(FAV_KEY)||"null"); }catch(_){ return null; }
+}
+function setFavorite(f){ try{ localStorage.setItem(FAV_KEY,JSON.stringify(f)); }catch(_){} }
+function clearFavorite(){
+  try{ localStorage.removeItem(FAV_KEY); }catch(_){}
+  if(favMarker){ map.removeLayer(favMarker); favMarker = null; }
+  favCard.innerHTML = "";
+}
+
+favForm.addEventListener("submit",e=>{ e.preventDefault(); geocode(favInput.value.trim()); });
+document.addEventListener("click",e=>{
+  if(!favForm.contains(e.target) && !favResults.contains(e.target)) favResults.classList.remove("show");
+});
+
+async function geocode(q){
+  if(!q){ favResults.classList.remove("show"); return; }
+  favResults.innerHTML = '<div class="fav-note">SEARCHING…</div>';
+  favResults.classList.add("show");
+  try{
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=en&format=json`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const results = (await res.json()).results || [];
+    if(!results.length){ favResults.innerHTML = '<div class="fav-note">NO MATCHES FOUND</div>'; return; }
+    favResults.innerHTML = results.map((r,i)=>{
+      const region = [r.admin1,r.country_code].filter(Boolean).join(", ");
+      return `<button type="button" class="fav-opt" data-i="${i}">${r.name}`+
+        `<small>${region} · ${r.latitude.toFixed(2)}, ${r.longitude.toFixed(2)}</small></button>`;
+    }).join("");
+    favResults.querySelectorAll(".fav-opt").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        const r = results[+btn.dataset.i];
+        chooseFavorite({
+          name:r.name, region:[r.admin1,r.country_code].filter(Boolean).join(", "),
+          lat:r.latitude, lon:r.longitude, cc:r.country_code
+        });
+      });
+    });
+  }catch(err){
+    favResults.innerHTML = '<div class="fav-note">SEARCH UNAVAILABLE — CHECK CONNECTION</div>';
+    console.warn("Geocoding:",err);
+  }
+}
+
+function chooseFavorite(f){
+  setFavorite(f);
+  favInput.value = "";
+  favResults.classList.remove("show");
+  favResults.innerHTML = "";
+  loadFavorite();
+}
+
+async function loadFavorite(){
+  const f = getFavorite();
+  if(!f){ favCard.innerHTML = ""; if(favMarker){ map.removeLayer(favMarker); favMarker = null; } return; }
+
+  if(favMarker) map.removeLayer(favMarker);
+  favMarker = L.marker([f.lat,f.lon],{
+    icon:L.divIcon({className:"",html:'<div class="fav-pin" style="color:#39c2a5">★</div>',iconSize:null,iconAnchor:[8,10]}),
+    title:f.name, keyboard:false, zIndexOffset:1000
+  }).addTo(map);
+
+  favCard.innerHTML = `<div class="fav-card"><div class="fav-place">${f.name}<small>${f.region||""}</small></div>`+
+    `<div class="fav-note">LOADING…</div></div>`;
+
+  const [wx, alerts] = await Promise.all([favWeather(f), favAlerts(f)]);
+  renderFavCard(f, wx, alerts);
+}
+
+async function favWeather(f){
+  try{
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${f.lat.toFixed(4)}&longitude=${f.lon.toFixed(4)}`+
+      `&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_direction_10m,weather_code`+
+      `&daily=temperature_2m_max,temperature_2m_min&forecast_days=1`+
+      `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    return await res.json();
+  }catch(err){ console.warn("Favorite weather:",err); return null; }
+}
+
+async function favAlerts(f){
+  // NWS point alerts cover the US only; non-US points return 400 -> "no coverage".
+  try{
+    const res = await fetch(`https://api.weather.gov/alerts/active?status=actual&point=${f.lat.toFixed(4)},${f.lon.toFixed(4)}`,
+      {headers:{Accept:"application/geo+json"}});
+    if(res.status===400) return {coverage:false, list:[]};
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    return {coverage:true, list:(data.features||[]).map(x=>x.properties)};
+  }catch(err){ console.warn("Favorite alerts:",err); return {coverage:true, list:null}; }
+}
+
+function renderFavCard(f, wx, alerts){
+  const c  = wx && wx.current;
+  const dl = wx && wx.daily;
+  const alerting = !!(alerts && alerts.list && alerts.list.length);
+
+  let cur = '<div class="fav-note">WEATHER UNAVAILABLE</div>';
+  if(c){
+    const hi = dl ? Math.round(dl.temperature_2m_max[0]) : null;
+    const lo = dl ? Math.round(dl.temperature_2m_min[0]) : null;
+    cur =
+      `<div class="fav-cur"><span class="t" style="color:${tempColor(Math.round(c.temperature_2m))}">${Math.round(c.temperature_2m)}°</span>`+
+      `<span class="d">${wmoText(c.weather_code)}<br>FEELS ${Math.round(c.apparent_temperature)}°</span></div>`+
+      `<div class="fav-meta">WIND ${windArrow(c.wind_direction_10m)} ${Math.round(c.wind_speed_10m)} MPH`+
+      (hi!=null?` · HI ${hi}° / LO ${lo}°`:"")+`</div>`;
+  }
+
+  let alertHtml;
+  if(alerting){
+    alertHtml = '<div class="fav-alerts">'+alerts.list.slice(0,4).map(p=>{
+      const col  = alertColor(p);
+      const ends = p.ends ? " · until "+new Date(p.ends).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "";
+      return `<div class="fav-alert" style="border-left-color:${col};background:${col}14">`+
+        `<span class="ev" style="color:${col}">${p.event||"Alert"}</span>`+
+        `<span class="ax">${p.senderName||"NWS"}${ends}</span></div>`;
+    }).join("")+'</div>';
+  }else if(alerts && alerts.list){
+    alertHtml = '<div class="fav-noalert">✓ NO ACTIVE NWS ALERTS</div>';
+  }else if(alerts && !alerts.coverage){
+    alertHtml = '<div class="fav-noalert" style="color:var(--muted)">NWS ALERTS — US ONLY</div>';
+  }else{
+    alertHtml = '<div class="fav-noalert" style="color:var(--muted)">ALERTS UNAVAILABLE</div>';
+  }
+
+  favCard.innerHTML =
+    `<div class="fav-card${alerting?" alerting":""}">`+
+    `<div class="fav-place">${f.name}<small>${f.region||""}</small></div>`+
+    cur + alertHtml +
+    `<div class="fav-actions"><button class="view">VIEW ON MAP</button><button class="rm">REMOVE</button></div>`+
+    `</div>`;
+  favCard.querySelector(".view").addEventListener("click",()=>{
+    map.flyTo([f.lat,f.lon], Math.max(map.getZoom(),8), {duration:.8});
+    loadPointForecast(f.lat, f.lon);
+    document.getElementById("sidebar").classList.remove("open");
+  });
+  favCard.querySelector(".rm").addEventListener("click",clearFavorite);
+}
+
 /* ---------- tropics + fronts ---------- */
 /* NHC serves CurrentStorms.json without CORS headers, so a direct browser
    fetch usually fails. Try direct first (in case that ever changes), then a
@@ -793,6 +1002,7 @@ function refreshAll(){
   loadRadar();
   loadAlerts();
   loadStations();
+  loadFavorite();
   if(document.getElementById("page-tropics").classList.contains("active")) loadTropics(true);
   nextRefreshAt = Date.now()+REFRESH_MS;
 }
