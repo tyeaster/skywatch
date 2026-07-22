@@ -12,6 +12,7 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
   - Live NWS alert polygons, color-coded by severity (warning / watch / advisory), click for details
   - ~50 city stations with switchable TEMP / WIND readouts
   - Click anywhere for a point forecast: current conditions, 48-hour temperature sparkline (canvas), and 7-day outlook
+  - **Favorite location** — search any place by name and pin it. A sidebar card tracks its current conditions, today's hi/lo, and any active NWS warnings/advisories (color-coded, with a red glow when something is active). Saved in your browser (localStorage) so it persists across visits; "View on map" flies there and opens the full forecast.
 - **Tropics + Fronts** — active tropical cyclone cards from NHC, plus live NHC 7-day tropical outlooks and WPC surface-analysis / forecast-fronts charts
 - **Learn** — field notes on reading radar reflectivity, watches vs. warnings, tropical classifications, surface charts, and IR imagery
 - Auto-refreshes all data every 5 minutes
@@ -22,7 +23,8 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
 |---|---|
 | [RainViewer](https://www.rainviewer.com/api.html) | Radar (NEXRAD-derived) and IR satellite tiles + frame timeline |
 | [NWS API](https://www.weather.gov/documentation/services-web-api) (api.weather.gov) | Active alert polygons |
-| [Open-Meteo](https://open-meteo.com/) | Station observations (batch) and point forecasts |
+| [Open-Meteo](https://open-meteo.com/) | Station observations (batch), point forecasts, and place-name search (geocoding API) |
+| [NWS API](https://www.weather.gov/documentation/services-web-api) point alerts | Active warnings/advisories for the favorite location (US only) |
 | [NHC](https://www.nhc.noaa.gov/) | `CurrentStorms.json` active-storm feed, tropical outlook charts |
 | [WPC](https://www.wpc.ncep.noaa.gov/) | Surface analysis and forecast fronts charts |
 | [OpenStreetMap](https://www.openstreetmap.org/) / [CARTO](https://carto.com/) | Dark basemap tiles |
