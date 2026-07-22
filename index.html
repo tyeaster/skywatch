@@ -224,12 +224,66 @@ aside{
 .scroll-page h2:first-child{margin-top:0}
 .scroll-page .sub{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);margin-bottom:14px}
 .storm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:8px}
-.storm-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:4px;padding:12px 14px}
+.storm-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:4px;padding:12px 14px;cursor:pointer;transition:border-color .15s,transform .15s}
+.storm-card:hover{border-color:var(--accent-dim);border-left-color:var(--accent);transform:translateY(-1px)}
 .storm-card h4{font-family:var(--mono);font-size:13px;margin-bottom:6px}
 .storm-card .cls{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--watch)}
 .storm-card dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:11px;margin-top:8px}
 .storm-card dt{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);align-self:center}
 .storm-card dd{font-family:var(--mono)}
+.storm-card .open-hint{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--accent-dim);margin-top:9px}
+
+/* ---------- storm detail subpage ---------- */
+#stormDetail{max-width:900px}
+.sd-back{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--muted);
+  border:1px solid var(--line);border-radius:3px;padding:6px 11px;margin-bottom:16px;
+}
+.sd-back:hover{color:var(--accent);border-color:var(--accent-dim)}
+.sd-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.sd-head h2{margin:0!important}
+.cat-badge{
+  font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.1em;
+  padding:5px 11px;border-radius:3px;color:#04110e;white-space:nowrap;
+}
+.sd-updated{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--muted);margin-bottom:18px}
+.sd-sec{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--accent);margin:22px 0 4px;border-top:1px solid var(--line);padding-top:16px}
+.sd-note{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--dim);margin-bottom:10px;line-height:1.6}
+.sd-note b{color:var(--muted)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+.stat .lab{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--muted);margin-bottom:5px}
+.stat .val{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1.1}
+.stat .val small{font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.04em}
+.stat .sub2{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px}
+
+/* saffir-simpson ladder */
+.ladder{display:flex;flex-direction:column;gap:3px;margin:12px 0}
+.rung{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid var(--line);border-radius:3px;background:var(--panel)}
+.rung .sw{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.rung .rn{width:130px;flex-shrink:0}
+.rung .rw{color:var(--muted);flex:1}
+.rung.cur{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset}
+.rung.cur .rw{color:var(--ink)}
+.next-line{font-family:var(--mono);font-size:12px;line-height:1.7;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--watch);border-radius:4px;padding:11px 14px;margin:10px 0}
+.next-line b{color:var(--watch)}
+.next-line.maxed{border-left-color:var(--warn)}
+.next-line.maxed b{color:var(--warn)}
+
+.sd-canvas{width:100%;height:auto;display:block;background:var(--panel-2);border:1px solid var(--line);border-radius:4px}
+.impacts{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:8px}
+.impacts li{display:flex;gap:11px;font-size:13px;line-height:1.6;align-items:flex-start}
+.impacts .ic{flex-shrink:0;width:22px;text-align:center}
+.impacts b{color:var(--accent)}
+.prod-links{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.prod-links a{
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--muted);
+  border:1px solid var(--line);border-radius:3px;padding:6px 11px;text-decoration:none;
+}
+.prod-links a:hover{color:var(--accent);border-color:var(--accent-dim)}
+.cone-wrap img{width:100%;max-width:640px;height:auto;display:block;border:1px solid var(--line);border-radius:4px;background:#0a0f0e}
+.cone-fallback{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;background:var(--panel);border:1px dashed var(--line);border-radius:4px;padding:12px 14px}
+.cone-fallback a{color:var(--accent)}
 #stormMsg{
   font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8;
   background:var(--panel);border:1px dashed var(--line);border-radius:4px;padding:14px 16px;
@@ -381,9 +435,9 @@ footer .dot{color:var(--accent-dim)}
 
   <!-- ============ TROPICS + FRONTS PAGE ============ -->
   <div class="page" id="page-tropics">
-    <div class="scroll-page">
+    <div class="scroll-page" id="tropicsList">
       <h2>ACTIVE TROPICAL CYCLONES</h2>
-      <div class="sub">NHC CURRENTSTORMS.JSON · ATLANTIC / E-PAC / C-PAC</div>
+      <div class="sub">NHC CURRENTSTORMS.JSON · ATLANTIC / E-PAC / C-PAC · TAP A STORM FOR THE FULL BRIEFING</div>
       <div class="storm-grid" id="stormGrid"></div>
       <div id="stormMsg" hidden></div>
 
@@ -412,6 +466,8 @@ footer .dot{color:var(--accent-dim)}
         </div>
       </div>
     </div>
+
+    <div class="scroll-page" id="stormDetail" hidden></div>
   </div>
 
   <!-- ============ LEARN PAGE ============ -->
@@ -530,9 +586,25 @@ document.querySelectorAll("nav button").forEach(btn=>{
     document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b===btn));
     document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page-"+btn.dataset.page));
     if(btn.dataset.page==="map") map.invalidateSize();
-    if(btn.dataset.page==="tropics") loadTropics();
+    if(btn.dataset.page==="tropics"){ loadTropics(); routeStorm(); }
   });
 });
+
+/* ---------- storm subpage routing (#storm/<id>) ---------- */
+function routeStorm(){
+  const onTropics = document.getElementById("page-tropics").classList.contains("active");
+  if(location.hash.startsWith("#storm/")){
+    if(!onTropics){  // deep-link straight to a storm: switch to the tropics page first
+      document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page==="tropics"));
+      document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page-tropics"));
+      loadTropics();
+    }
+    openStorm(decodeURIComponent(location.hash.slice(7)));
+  }else{
+    showStormList();
+  }
+}
+window.addEventListener("hashchange",routeStorm);
 document.getElementById("sideBtn").addEventListener("click",
   ()=>document.getElementById("sidebar").classList.toggle("open"));
 
@@ -996,6 +1068,7 @@ const NHC_SOURCES = [
   "https://api.allorigins.win/raw?url="+encodeURIComponent(NHC_URL)
 ];
 let tropicsLoadedAt = 0;
+let stormData = [];
 
 async function loadTropics(force){
   // lazy refresh: charts + storms at most once per refresh window
@@ -1032,22 +1105,457 @@ async function loadTropics(force){
   msg.hidden = true;
   if(!data.activeStorms.length){
     grid.innerHTML = "";
+    stormData = [];
     msg.hidden = false;
     msg.textContent = "NO ACTIVE TROPICAL CYCLONES IN THE ATLANTIC OR EASTERN/CENTRAL PACIFIC.";
+    if(!location.hash.startsWith("#storm/")) showStormList();
     return;
   }
-  grid.innerHTML = data.activeStorms.map(s=>`
-    <div class="storm-card">
+  stormData = data.activeStorms;
+  stormData.forEach(recordStormObs);   // build local intensity history
+  renderStormCards();
+  // if a detail subpage is open for a storm that still exists, refresh it
+  const openId = location.hash.startsWith("#storm/") ? decodeURIComponent(location.hash.slice(7)) : null;
+  if(openId && stormData.some(s=>s.id===openId)) openStorm(openId);
+}
+
+function renderStormCards(){
+  const grid = document.getElementById("stormGrid");
+  grid.innerHTML = stormData.map(s=>{
+    const kt = parseInt(s.intensity,10);
+    const cat = catFromWind(kt);
+    return `<div class="storm-card" data-id="${s.id}" style="border-left-color:${cat.color}">
       <div class="cls">${(s.classification||"").toUpperCase()} · ${(s.binNumber||"").toUpperCase()}</div>
       <h4>${s.name||"UNNAMED"}</h4>
       <dl>
-        <dt>WIND</dt><dd>${s.intensity?s.intensity+" KT":"–"}</dd>
+        <dt>STATUS</dt><dd style="color:${cat.color}">${cat.short}</dd>
+        <dt>WIND</dt><dd>${s.intensity?s.intensity+" KT ("+ktToMph(kt)+" MPH)":"–"}</dd>
         <dt>PRES</dt><dd>${s.pressure?s.pressure+" MB":"–"}</dd>
-        <dt>MOVING</dt><dd>${s.movementDir!=null?s.movementDir+"° @ "+s.movementSpeed+" KT":"–"}</dd>
-        <dt>POS</dt><dd>${s.latitudeNumeric!=null?s.latitudeNumeric.toFixed(1)+", "+s.longitudeNumeric.toFixed(1):"–"}</dd>
-        <dt>UPDATE</dt><dd>${s.lastUpdate?new Date(s.lastUpdate).toUTCString().slice(17,22)+"Z":"–"}</dd>
+        <dt>MOVING</dt><dd>${s.movementDir!=null?compass(s.movementDir)+" @ "+s.movementSpeed+" KT":"–"}</dd>
+        <dt>POS</dt><dd>${s.latitudeNumeric!=null?fmtLat(s.latitudeNumeric)+" "+fmtLon(s.longitudeNumeric):"–"}</dd>
       </dl>
-    </div>`).join("");
+      <div class="open-hint">FULL BRIEFING →</div>
+    </div>`;
+  }).join("");
+  grid.querySelectorAll(".storm-card").forEach(c=>{
+    c.addEventListener("click",()=>{ location.hash = "storm/"+encodeURIComponent(c.dataset.id); });
+  });
+}
+
+/* ---------- storm science helpers ---------- */
+// Saffir-Simpson scale (sustained wind in knots)
+const SS = [
+  {min:137, name:"Category 5 Hurricane",       short:"CAT 5", color:"#c026d3"},
+  {min:113, name:"Category 4 Hurricane",       short:"CAT 4", color:"#ff5d5d"},
+  {min:96,  name:"Category 3 Hurricane (Major)",short:"CAT 3", color:"#ff7043"},
+  {min:83,  name:"Category 2 Hurricane",       short:"CAT 2", color:"#ffb14d"},
+  {min:64,  name:"Category 1 Hurricane",       short:"CAT 1", color:"#ffe066"},
+  {min:34,  name:"Tropical Storm",             short:"TROP STORM", color:"#39c2a5"},
+  {min:0,   name:"Tropical Depression",        short:"TROP DEPRESSION", color:"#6fb7ff"}
+];
+function catFromWind(kt){ return SS.find(c=>kt>=c.min) || SS[SS.length-1]; }
+function nextCat(kt){ // the rung above current; null if Cat 5
+  const above = SS.filter(c=>c.min>kt).sort((a,b)=>a.min-b.min);
+  return above.length ? above[0] : null;
+}
+const ktToMph = kt => Math.round(kt*1.15078);
+const ktToKmh = kt => Math.round(kt*1.852);
+function compass(deg){
+  return ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round(deg/22.5)%16];
+}
+const fmtLat = v => Math.abs(v).toFixed(1)+(v>=0?"°N":"°S");
+const fmtLon = v => Math.abs(v).toFixed(1)+(v>=0?"°E":"°W");
+
+// Coastal reference points for a nearest-landfall proxy (name, lat, lon)
+const COAST = [
+["Brownsville TX",25.90,-97.50],["Corpus Christi TX",27.80,-97.40],["Galveston TX",29.30,-94.80],
+["Cameron LA",29.80,-93.32],["New Orleans LA",29.95,-90.07],["Gulfport MS",30.37,-89.09],
+["Mobile AL",30.69,-88.04],["Pensacola FL",30.42,-87.22],["Panama City FL",30.16,-85.66],
+["Cedar Key FL",29.14,-83.03],["Tampa FL",27.95,-82.46],["Fort Myers FL",26.64,-81.87],
+["Key West FL",24.56,-81.78],["Miami FL",25.76,-80.19],["West Palm Beach FL",26.71,-80.05],
+["Cape Canaveral FL",28.39,-80.60],["Jacksonville FL",30.33,-81.66],["Savannah GA",32.08,-81.09],
+["Charleston SC",32.78,-79.93],["Wilmington NC",34.21,-77.95],["Cape Hatteras NC",35.25,-75.53],
+["Virginia Beach VA",36.85,-75.98],["Atlantic City NJ",39.36,-74.42],["New York NY",40.71,-74.01],
+["Cape Cod MA",41.67,-70.30],["Havana CU",23.11,-82.37],["Cancún MX",21.16,-86.85],
+["Kingston JM",17.97,-76.79],["San Juan PR",18.47,-66.11],["Nassau BS",25.06,-77.35],
+["Bermuda",32.30,-64.78],["Cabo San Lucas MX",22.89,-109.91],["Acapulco MX",16.86,-99.88],
+["Manzanillo MX",19.05,-104.32],["Mazatlán MX",23.25,-106.41]
+];
+function haversine(lat1,lon1,lat2,lon2){
+  const R=3440.065, r=Math.PI/180; // nautical miles
+  const dLat=(lat2-lat1)*r, dLon=(lon2-lon1)*r;
+  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function bearing(lat1,lon1,lat2,lon2){
+  const r=Math.PI/180;
+  const y=Math.sin((lon2-lon1)*r)*Math.cos(lat2*r);
+  const x=Math.cos(lat1*r)*Math.sin(lat2*r)-Math.sin(lat1*r)*Math.cos(lat2*r)*Math.cos((lon2-lon1)*r);
+  return (Math.atan2(y,x)/r+360)%360;
+}
+function nearestCoast(lat,lon){
+  let best=null;
+  COAST.forEach(([name,la,lo])=>{
+    const d=haversine(lat,lon,la,lo);
+    if(!best||d<best.nm) best={name,nm:d,brg:bearing(lat,lon,la,lo),lat:la,lon:lo};
+  });
+  return best;
+}
+// dead-reckoning: project position t hours ahead along current heading (naive)
+function project(lat,lon,dirDeg,spdKt,t){
+  const nm=spdKt*t, r=Math.PI/180;
+  const dLat=(nm*Math.cos(dirDeg*r))/60;
+  const dLon=(nm*Math.sin(dirDeg*r))/60/Math.cos(lat*r);
+  return [lat+dLat, lon+dLon];
+}
+
+/* ---------- local intensity history (snapshot feed has none) ---------- */
+function recordStormObs(s){
+  if(!s.id || s.intensity==null) return;
+  const key="skywatch.storm."+s.id;
+  let hist=[];
+  try{ hist=JSON.parse(localStorage.getItem(key)||"[]"); }catch(_){}
+  const now=Date.now();
+  const last=hist[hist.length-1];
+  // record at most every ~50 min, or if intensity changed
+  if(last && now-last.t < 50*60*1000 && last.w===parseInt(s.intensity,10)) return;
+  hist.push({t:now, w:parseInt(s.intensity,10), p:parseInt(s.pressure,10)||null,
+             lat:s.latitudeNumeric, lon:s.longitudeNumeric});
+  if(hist.length>500) hist=hist.slice(-500);
+  try{ localStorage.setItem(key,JSON.stringify(hist)); }catch(_){}
+}
+function stormHistory(id){
+  try{ return JSON.parse(localStorage.getItem("skywatch.storm."+id)||"[]"); }catch(_){ return []; }
+}
+// intensification rate in kt/24h from the last ~24h of local history
+function intensRate(hist){
+  if(hist.length<2) return null;
+  const newest=hist[hist.length-1];
+  const cutoff=newest.t-24*3600*1000;
+  let ref=hist[0];
+  for(const h of hist){ if(h.t>=cutoff){ ref=h; break; } }
+  const dtH=(newest.t-ref.t)/3600000;
+  if(dtH<0.5) return null;
+  return {rate:(newest.w-ref.w)/dtH*24, hours:dtH, dW:newest.w-ref.w};
+}
+
+/* ---------- storm detail subpage ---------- */
+function showStormList(){
+  document.getElementById("stormDetail").hidden = true;
+  document.getElementById("tropicsList").hidden = false;
+}
+function openStorm(id){
+  const s = stormData.find(x=>x.id===id);
+  const detail = document.getElementById("stormDetail");
+  document.getElementById("tropicsList").hidden = true;
+  detail.hidden = false;
+  detail.scrollTop = 0;
+  if(!s){
+    const loading = stormData.length===0;
+    detail.innerHTML = `<button class="sd-back" onclick="location.hash=''">← BACK TO ALL STORMS</button>`+
+      (loading
+        ? `<div class="cone-fallback">Loading storm data…</div>`
+        : `<div class="cone-fallback">This storm is no longer in the active feed, or the feed is unavailable. `+
+          `See <a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener">NHC.NOAA.GOV</a>.</div>`);
+    return;
+  }
+
+  const kt   = parseInt(s.intensity,10);
+  const cat  = catFromWind(kt);
+  const nxt  = nextCat(kt);
+  const pres = parseInt(s.pressure,10)||null;
+  const lat  = s.latitudeNumeric, lon = s.longitudeNumeric;
+  const hist = stormHistory(id);
+  const rate = intensRate(hist);
+  const coast= (lat!=null&&lon!=null) ? nearestCoast(lat,lon) : null;
+
+  // next-category line
+  let nextLine;
+  if(nxt){
+    const gap=nxt.min-kt;
+    nextLine=`<div class="next-line"><b>${gap} KT (${ktToMph(nxt.min)-ktToMph(kt)} MPH)</b> stronger winds would make it a `+
+      `<b>${nxt.name}</b> (needs ${nxt.min} KT / ${ktToMph(nxt.min)} MPH sustained).</div>`;
+  }else{
+    nextLine=`<div class="next-line maxed">This is the <b>top of the Saffir-Simpson scale</b> — there is no Category 6. `+
+      `Category 5 covers everything ${SS[0].min} KT (${ktToMph(SS[0].min)} MPH) and up.</div>`;
+  }
+
+  // saffir-simpson ladder
+  const ladder = SS.map(c=>`<div class="rung ${c===cat?'cur':''}">`+
+    `<span class="sw" style="background:${c.color}"></span>`+
+    `<span class="rn">${c.short}</span>`+
+    `<span class="rw">${c.min>0?c.min+"+ KT ("+ktToMph(c.min)+"+ MPH)":"< 34 KT"}</span></div>`).join("");
+
+  // development / intensification
+  let devHtml;
+  if(rate){
+    const ri = rate.rate>=30;
+    const word = rate.dW>0?"STRENGTHENING":rate.dW<0?"WEAKENING":"STEADY";
+    const col  = rate.dW>0?"#ff7043":rate.dW<0?"#39c2a5":"#5f7a74";
+    devHtml=`<div class="stat-grid">
+      <div class="stat"><div class="lab">TREND (LOCAL)</div><div class="val" style="color:${col}">${word}</div>
+        <div class="sub2">${rate.dW>=0?"+":""}${rate.dW} KT over ${rate.hours.toFixed(1)} h observed</div></div>
+      <div class="stat"><div class="lab">RATE</div><div class="val">${rate.rate>=0?"+":""}${Math.round(rate.rate)} <small>KT/24H</small></div>
+        <div class="sub2">${ri?"⚠ RAPID INTENSIFICATION (≥30 KT/24H)":"below rapid-intensification threshold"}</div></div>
+    </div>`;
+  }else{
+    devHtml=`<div class="cone-fallback">SKYWATCH records this storm's wind &amp; pressure each time you open the Tropics page, then charts the change here. `+
+      `There isn't enough local history yet — revisit over the coming hours to watch the trend build. `+
+      `The complete official best-track is at <a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener">NHC</a>.</div>`;
+  }
+
+  // projected path (naive)
+  let projHtml="";
+  if(lat!=null&&lon!=null&&s.movementDir!=null&&s.movementSpeed!=null){
+    const p24=project(lat,lon,s.movementDir,s.movementSpeed,24);
+    const p48=project(lat,lon,s.movementDir,s.movementSpeed,48);
+    const c24=nearestCoast(p24[0],p24[1]);
+    projHtml=`<div class="stat-grid">
+      <div class="stat"><div class="lab">IN 24 H (EST)</div><div class="val" style="font-size:15px">${fmtLat(p24[0])} ${fmtLon(p24[1])}</div>
+        <div class="sub2">nearest coast: ${c24.name}, ${Math.round(c24.nm)} nm</div></div>
+      <div class="stat"><div class="lab">IN 48 H (EST)</div><div class="val" style="font-size:15px">${fmtLat(p48[0])} ${fmtLon(p48[1])}</div></div>
+    </div>`;
+  }
+
+  // impacts by category
+  const impacts = impactNarrative(cat, kt);
+
+  // official product links from the JSON (always correct URLs)
+  const links = collectProductLinks(s);
+
+  detail.innerHTML = `
+    <button class="sd-back" onclick="location.hash=''">← BACK TO ALL STORMS</button>
+    <div class="sd-head">
+      <h2>${(s.name||"UNNAMED").toUpperCase()}</h2>
+      <span class="cat-badge" style="background:${cat.color}">${cat.short}</span>
+    </div>
+    <div class="sd-updated">${(s.classification||"").toUpperCase()} · ${(s.binNumber||"").toUpperCase()}${s.id?" · "+s.id.toUpperCase():""}`+
+      `${s.lastUpdate?" · UPDATED "+new Date(s.lastUpdate).toUTCString():""}</div>
+
+    <div class="sd-sec">CURRENT INTENSITY</div>
+    <div class="sd-note">OFFICIAL — from NHC advisory.</div>
+    <div class="stat-grid">
+      <div class="stat"><div class="lab">MAX SUSTAINED WIND</div><div class="val" style="color:${cat.color}">${kt||"–"} <small>KT</small></div>
+        <div class="sub2">${kt?ktToMph(kt)+" mph · "+ktToKmh(kt)+" km/h":""}</div></div>
+      <div class="stat"><div class="lab">MIN CENTRAL PRESSURE</div><div class="val">${pres||"–"} <small>MB</small></div>
+        <div class="sub2">lower = stronger</div></div>
+      <div class="stat"><div class="lab">CLASSIFICATION</div><div class="val" style="font-size:15px">${cat.name}</div></div>
+    </div>
+    ${nextLine}
+
+    <div class="sd-sec">SAFFIR-SIMPSON SCALE</div>
+    <div class="sd-note">Where this storm sits now (highlighted) and the wind needed for each step.</div>
+    <div class="ladder">${ladder}</div>
+
+    <div class="sd-sec">HOW FAST IS IT DEVELOPING?</div>
+    <div class="sd-note"><b>SKYWATCH-TRACKED</b> — built from snapshots recorded on this device.</div>
+    ${devHtml}
+    <canvas id="stormHist" class="sd-canvas" width="860" height="240"></canvas>
+
+    <div class="sd-sec">POSITION, MOTION &amp; PROJECTED PATH</div>
+    <div class="sd-note"><b>Position &amp; motion are OFFICIAL.</b> The path plot and 24/48 h points are a SKYWATCH straight-line (dead-reckoning) estimate with an illustrative uncertainty cone using NHC average track-error radii — <b>not</b> the official forecast. Use the official cone below for planning.</div>
+    <div class="stat-grid">
+      <div class="stat"><div class="lab">POSITION</div><div class="val" style="font-size:15px">${lat!=null?fmtLat(lat)+" "+fmtLon(lon):"–"}</div></div>
+      <div class="stat"><div class="lab">MOVEMENT</div><div class="val" style="font-size:15px">${s.movementDir!=null?"toward "+compass(s.movementDir):"–"}</div>
+        <div class="sub2">${s.movementSpeed!=null?s.movementDir+"° at "+s.movementSpeed+" kt ("+ktToMph(s.movementSpeed)+" mph)":""}</div></div>
+      ${coast?`<div class="stat"><div class="lab">NEAREST COAST NOW</div><div class="val" style="font-size:15px">${coast.name}</div>
+        <div class="sub2">${Math.round(coast.nm)} nm ${compass(coast.brg)} of storm</div></div>`:""}
+    </div>
+    ${projHtml}
+    <canvas id="stormTrack" class="sd-canvas" width="860" height="360"></canvas>
+
+    <div class="sd-sec">OFFICIAL FORECAST CONE</div>
+    <div class="sd-note">OFFICIAL — NHC 5-day cone. If it doesn't load, use the link.</div>
+    <div class="cone-wrap" id="coneWrap"></div>
+
+    <div class="sd-sec">WHAT TO EXPECT</div>
+    <div class="sd-note">General category-based guidance — local impacts depend on the official forecast, your exact location, surge, and rainfall.</div>
+    <ul class="impacts">${impacts}</ul>
+
+    <div class="sd-sec">OFFICIAL NHC PRODUCTS</div>
+    <div class="sd-note">Authoritative advisories &amp; graphics — always defer to these.</div>
+    <div class="prod-links">${links}</div>
+
+    <div class="sd-note" style="margin-top:18px">SKYWATCH is an informational tool built on free public data and is <b>not</b> an official source. For watches, warnings, and evacuation decisions, follow the National Hurricane Center and your local emergency management.</div>
+  `;
+
+  drawStormHistory(hist);
+  drawStormTrack(s);
+  mountCone(s);
+}
+
+function impactNarrative(cat,kt){
+  const rows=[];
+  if(kt>=137){
+    rows.push(["🌀","<b>Catastrophic.</b> A high percentage of framed homes destroyed. Power/water out for weeks to months; areas uninhabitable for a long time."]);
+  }else if(kt>=113){
+    rows.push(["🌀","<b>Catastrophic.</b> Severe structural damage; most of the area uninhabitable for weeks or months. Power out for weeks."]);
+  }else if(kt>=96){
+    rows.push(["🌀","<b>Devastating (major hurricane).</b> Well-built homes may lose roof decking and gable ends. Electricity and water unavailable for days to weeks."]);
+  }else if(kt>=83){
+    rows.push(["🌀","<b>Extremely dangerous winds.</b> Major roof and siding damage; many trees snapped or uprooted; near-total power loss for days to weeks."]);
+  }else if(kt>=64){
+    rows.push(["🌀","<b>Dangerous hurricane-force winds.</b> Damage to roofs, shingles, siding and gutters; large branches down; power outages likely for hours to days."]);
+  }else if(kt>=34){
+    rows.push(["🌬️","<b>Tropical-storm winds.</b> Broken tree limbs, some structural damage possible; localized power outages."]);
+  }else{
+    rows.push(["🌬️","<b>Depression.</b> Winds below tropical-storm force, but heavy rain and flooding are still possible."]);
+  }
+  rows.push(["🌊","<b>Storm surge</b> (ocean water pushed ashore) is often the deadliest hazard and doesn't track the wind category — even a weaker storm can drive dangerous surge on a vulnerable coast."]);
+  rows.push(["🌧️","<b>Inland flooding</b> from heavy rain can be life-threatening far from the coast, especially with a slow-moving system."]);
+  rows.push(["⏱️","<b>Timing &amp; exact track</b> come from the official NHC forecast — small shifts change who is affected. Check the cone and advisories."]);
+  return rows.map(([ic,t])=>`<li><span class="ic">${ic}</span><span>${t}</span></li>`).join("");
+}
+
+// gather any {…, url} product objects from the storm JSON -> labelled links
+function collectProductLinks(s){
+  const labels={publicAdvisory:"Public Advisory",forecastAdvisory:"Forecast Advisory",
+    forecastDiscussion:"Forecast Discussion",windSpeedProbabilities:"Wind Speed Probabilities",
+    forecastGraphics:"Forecast Graphics",trackCone:"Track & Cone (GIS)",forecastTrack:"Forecast Track (GIS)",
+    bestTrack:"Best Track (GIS)",initialWindExtent:"Wind Field (GIS)",forecastWindRadii:"Forecast Wind Radii (GIS)",
+    windSpeedProbabilitiesGIF:"Wind Probabilities Graphic",watchWarning:"Watches & Warnings"};
+  const out=[];
+  for(const k in s){
+    const v=s[k];
+    if(v && typeof v==="object" && typeof v.url==="string" && /^https?:/.test(v.url)){
+      out.push(`<a href="${v.url}" target="_blank" rel="noopener">${labels[k]||k}</a>`);
+    }
+  }
+  out.push(`<a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener">NHC Home</a>`);
+  return out.join("");
+}
+
+// official cone image, best-effort with graceful fallback link
+function mountCone(s){
+  const wrap=document.getElementById("coneWrap");
+  if(!wrap) return;
+  const fallbackUrl = coneFallbackUrl(s);
+  const fallback = `<div class="cone-fallback">The official cone graphic couldn't be embedded here. `+
+    `View it directly at <a href="${fallbackUrl}" target="_blank" rel="noopener">NHC</a>.</div>`;
+  const src = coneImageUrl(s);
+  if(!src){ wrap.innerHTML = fallback; return; }
+  const img=new Image();
+  img.alt=`NHC forecast cone for ${s.name||"storm"}`;
+  img.onload=()=>{ wrap.innerHTML=""; wrap.appendChild(img);
+    const cap=document.createElement("div"); cap.className="sd-note"; cap.style.marginTop="6px";
+    cap.textContent="SOURCE NHC.NOAA.GOV"; wrap.appendChild(cap); };
+  img.onerror=()=>{ wrap.innerHTML=fallback; };
+  img.src=src+(src.includes("?")?"&":"?")+"t="+Math.floor(Date.now()/300000);
+}
+function coneImageUrl(s){
+  // prefer a cone/graphic URL supplied by the feed
+  for(const k in s){
+    const v=s[k];
+    if(v&&typeof v==="object"&&typeof v.url==="string"&&/\.(png|gif|jpg)$/i.test(v.url)&&/cone|5day|track/i.test(v.url)) return v.url;
+  }
+  // otherwise construct the conventional NHC storm-graphics URL
+  if(s.binNumber && s.id){
+    return `https://www.nhc.noaa.gov/storm_graphics/${s.binNumber.toUpperCase()}/${s.id.toUpperCase()}_5day_cone_with_line_and_wind.png`;
+  }
+  return null;
+}
+function coneFallbackUrl(s){
+  for(const k in s){
+    const v=s[k];
+    if(v&&typeof v==="object"&&typeof v.url==="string"&&/nhc\.noaa\.gov/.test(v.url)) return v.url;
+  }
+  return "https://www.nhc.noaa.gov/";
+}
+
+/* ---------- storm canvases ---------- */
+function drawStormHistory(hist){
+  const cv=document.getElementById("stormHist"); if(!cv) return;
+  const ctx=cv.getContext("2d"), W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const padL=44,padR=44,padT=16,padB=26;
+  if(hist.length<2){
+    ctx.fillStyle="#5f7a74"; ctx.font="14px ui-monospace,Menlo,monospace"; ctx.textAlign="center";
+    ctx.fillText("Not enough local history yet — revisit over the coming hours.",W/2,H/2);
+    ctx.textAlign="left"; return;
+  }
+  const t0=hist[0].t, t1=hist[hist.length-1].t, tSpan=(t1-t0)||1;
+  const winds=hist.map(h=>h.w), pres=hist.filter(h=>h.p).map(h=>h.p);
+  const wMin=Math.min(...winds,34), wMax=Math.max(...winds,64);
+  const pMin=pres.length?Math.min(...pres)-4:960, pMax=pres.length?Math.max(...pres)+4:1010;
+  const x=t=>padL+(t-t0)/tSpan*(W-padL-padR);
+  const yw=w=>H-padB-(w-wMin)/((wMax-wMin)||1)*(H-padT-padB);
+  const yp=p=>H-padB-(p-pMin)/((pMax-pMin)||1)*(H-padT-padB);
+  // category bands (wind)
+  SS.forEach(c=>{ if(c.min>=wMin&&c.min<=wMax){ const y=yw(c.min);
+    ctx.strokeStyle="#1c2a27"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle="#3d524d"; ctx.font="9px ui-monospace,Menlo,monospace"; ctx.fillText(c.short,padL+2,y-2); }});
+  // pressure line
+  if(pres.length){ ctx.beginPath();
+    hist.forEach((h,i)=>{ if(h.p==null) return; const X=x(h.t),Y=yp(h.p); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); });
+    ctx.strokeStyle="#6fb7ff"; ctx.lineWidth=1.5; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]); }
+  // wind line
+  ctx.beginPath();
+  hist.forEach((h,i)=>{ const X=x(h.t),Y=yw(h.w); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); });
+  ctx.strokeStyle="#ff7043"; ctx.lineWidth=2.5; ctx.lineJoin="round"; ctx.stroke();
+  hist.forEach(h=>{ ctx.fillStyle="#ff7043"; ctx.beginPath(); ctx.arc(x(h.t),yw(h.w),2.5,0,7); ctx.fill(); });
+  // axes labels
+  ctx.fillStyle="#ff7043"; ctx.font="10px ui-monospace,Menlo,monospace";
+  ctx.fillText(wMax+" kt",4,yw(wMax)+4); ctx.fillText(wMin+" kt",4,yw(wMin)+4);
+  if(pres.length){ ctx.fillStyle="#6fb7ff"; ctx.textAlign="right";
+    ctx.fillText(pMax+"mb",W-4,yp(pMax)+4); ctx.fillText(pMin+"mb",W-4,yp(pMin)+4); ctx.textAlign="left"; }
+  ctx.fillStyle="#5f7a74"; ctx.font="9px ui-monospace,Menlo,monospace";
+  ctx.fillText(new Date(t0).toUTCString().slice(5,17),padL,H-8);
+  ctx.textAlign="right"; ctx.fillText(new Date(t1).toUTCString().slice(5,17)+"Z",W-padR,H-8); ctx.textAlign="left";
+  ctx.fillStyle="#ff7043"; ctx.fillText("● WIND",W/2-50,H-8);
+  if(pres.length){ ctx.fillStyle="#6fb7ff"; ctx.fillText("- - PRESSURE",W/2+10,H-8); }
+}
+
+// projected path + illustrative uncertainty cone (NHC average track-error radii, nm)
+const CONE_R={12:26,24:40,36:55,48:69,72:98,96:139,120:174};
+function drawStormTrack(s){
+  const cv=document.getElementById("stormTrack"); if(!cv) return;
+  const ctx=cv.getContext("2d"), W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const lat=s.latitudeNumeric, lon=s.longitudeNumeric;
+  if(lat==null||lon==null){ ctx.fillStyle="#5f7a74"; ctx.font="14px ui-monospace,Menlo,monospace"; ctx.textAlign="center";
+    ctx.fillText("Position unavailable.",W/2,H/2); ctx.textAlign="left"; return; }
+  const dir=s.movementDir, spd=s.movementSpeed;
+  // build points: now + projections (if motion known)
+  const pts=[{h:0,lat,lon}];
+  const coneHours=[12,24,36,48,72];
+  if(dir!=null&&spd!=null){ coneHours.forEach(h=>{ const [la,lo]=project(lat,lon,dir,spd,h); pts.push({h,lat:la,lon:lo}); }); }
+  // include nearest coast for context
+  const coast=nearestCoast(lat,lon);
+  const allLat=pts.map(p=>p.lat).concat(coast.lat), allLon=pts.map(p=>p.lon).concat(coast.lon);
+  // add cone radii (deg) to bounds so the cone fits
+  const maxRdeg=(dir!=null&&spd!=null)?CONE_R[72]/60:2;
+  let laMin=Math.min(...allLat)-maxRdeg, laMax=Math.max(...allLat)+maxRdeg;
+  let loMin=Math.min(...allLon)-maxRdeg, loMax=Math.max(...allLon)+maxRdeg;
+  const pad=28;
+  const midLat=(laMin+laMax)/2;
+  const sx=(W-2*pad)/((loMax-loMin)||1), sy=(H-2*pad)/((laMax-laMin)||1);
+  const sc=Math.min(sx,sy);
+  const X=lo=>pad+(lo-loMin)*sc + (W-2*pad-((loMax-loMin)*sc))/2;
+  const Y=la=>pad+(laMax-la)*sc;
+  const nmToPx=nm=>nm/60*sc*Math.cos(midLat*Math.PI/180); // approx (lon-based), fine for illustration
+  // uncertainty cone (filled)
+  if(dir!=null&&spd!=null){
+    ctx.fillStyle="rgba(255,112,67,.10)"; ctx.strokeStyle="rgba(255,112,67,.35)"; ctx.lineWidth=1;
+    coneHours.forEach(h=>{ const [la,lo]=project(lat,lon,dir,spd,h); const rpx=Math.max(nmToPx(CONE_R[h]||CONE_R[72]),2);
+      ctx.beginPath(); ctx.arc(X(lo),Y(la),rpx,0,7); ctx.fill(); });
+  }
+  // coast marker
+  ctx.fillStyle="#39c2a5"; ctx.beginPath(); ctx.arc(X(coast.lon),Y(coast.lat),4,0,7); ctx.fill();
+  ctx.fillStyle="#39c2a5"; ctx.font="10px ui-monospace,Menlo,monospace";
+  ctx.fillText(coast.name,X(coast.lon)+7,Y(coast.lat)+3);
+  // projected track line
+  if(pts.length>1){ ctx.beginPath(); pts.forEach((p,i)=>{ i?ctx.lineTo(X(p.lon),Y(p.lat)):ctx.moveTo(X(p.lon),Y(p.lat)); });
+    ctx.strokeStyle="#ff7043"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
+    pts.slice(1).forEach(p=>{ ctx.fillStyle="#ff7043"; ctx.beginPath(); ctx.arc(X(p.lon),Y(p.lat),3,0,7); ctx.fill();
+      ctx.fillStyle="#cfe7e2"; ctx.font="9px ui-monospace,Menlo,monospace"; ctx.fillText("+"+p.h+"h",X(p.lon)+6,Y(p.lat)-4); }); }
+  // current position (big)
+  const cat=catFromWind(parseInt(s.intensity,10));
+  ctx.fillStyle=cat.color; ctx.beginPath(); ctx.arc(X(lon),Y(lat),6,0,7); ctx.fill();
+  ctx.strokeStyle="#04110e"; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle="#cfe7e2"; ctx.font="700 11px ui-monospace,Menlo,monospace"; ctx.fillText("NOW",X(lon)+9,Y(lat)+4);
+  // legend
+  ctx.fillStyle="#5f7a74"; ctx.font="9px ui-monospace,Menlo,monospace";
+  ctx.fillText("○ illustrative uncertainty (NHC avg track error)  ·  - - straight-line projection  ·  ● nearest coast",pad,H-8);
 }
 
 /* ---------- refresh cycle ---------- */
@@ -1069,6 +1577,7 @@ setInterval(()=>{
 
 refreshAll();
 setPlaying(false);
+if(location.hash.startsWith("#storm/")) routeStorm();   // honor a deep-link on load
 </script>
 </body>
 </html>
