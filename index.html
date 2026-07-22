@@ -1662,34 +1662,47 @@ function collectProductLinks(s){
   return out.join("");
 }
 
-// official cone image, best-effort with graceful fallback link
+// Candidate cone-image URLs, tried in order. NHC serves these images with
+// cross-origin restrictions that can block a direct hotlink, so each direct
+// NHC url is paired with a fetch through wsrv.nl — a free, key-less image
+// proxy that retrieves it server-side and re-serves it with open headers.
+function coneCandidates(s){
+  const cb="?t="+Math.floor(Date.now()/3600000);           // hourly cache-buster
+  const wsrv=u=>"https://wsrv.nl/?url="+encodeURIComponent(u+cb)+"&output=png";
+  const list=[];
+  // 1) any direct image url the feed itself supplies
+  for(const k in s){ const v=s[k];
+    if(v&&typeof v==="object"&&typeof v.url==="string"&&/\.(png|gif|jpe?g)$/i.test(v.url)&&/cone|5day|track/i.test(v.url)){
+      list.push(v.url+cb); list.push(wsrv(v.url)); }
+  }
+  // 2) the two conventional NHC storm-graphics url patterns, direct then proxied
+  if(s.id){
+    const ID=s.id.toUpperCase();
+    const pats=[];
+    if(s.binNumber) pats.push(`https://www.nhc.noaa.gov/storm_graphics/${s.binNumber.toUpperCase()}/${ID}_5day_cone_with_line_and_wind.png`);
+    pats.push(`https://www.nhc.noaa.gov/storm_graphics/api/${ID}_5day_cone_with_line_and_wind.png`);
+    pats.forEach(u=>{ list.push(u+cb); list.push(wsrv(u)); });
+  }
+  return list;
+}
+
+// official cone image — tries each candidate, falls back to a link
 function mountCone(s){
   const wrap=document.getElementById("coneWrap");
   if(!wrap) return;
-  const fallbackUrl = coneFallbackUrl(s);
-  const fallback = `<div class="cone-fallback">The official cone graphic couldn't be embedded here. `+
+  const fallbackUrl=coneFallbackUrl(s);
+  const fallback=`<div class="cone-fallback">The official cone graphic couldn't be embedded here. `+
     `View it directly at <a href="${fallbackUrl}" target="_blank" rel="noopener">NHC</a>.</div>`;
-  const src = coneImageUrl(s);
-  if(!src){ wrap.innerHTML = fallback; return; }
+  const cands=coneCandidates(s);
+  if(!cands.length){ wrap.innerHTML=fallback; return; }
+  let i=0;
   const img=new Image();
   img.alt=`NHC forecast cone for ${s.name||"storm"}`;
   img.onload=()=>{ wrap.innerHTML=""; wrap.appendChild(img);
     const cap=document.createElement("div"); cap.className="sd-note"; cap.style.marginTop="6px";
-    cap.textContent="SOURCE NHC.NOAA.GOV"; wrap.appendChild(cap); };
-  img.onerror=()=>{ wrap.innerHTML=fallback; };
-  img.src=src+(src.includes("?")?"&":"?")+"t="+Math.floor(Date.now()/300000);
-}
-function coneImageUrl(s){
-  // prefer a cone/graphic URL supplied by the feed
-  for(const k in s){
-    const v=s[k];
-    if(v&&typeof v==="object"&&typeof v.url==="string"&&/\.(png|gif|jpg)$/i.test(v.url)&&/cone|5day|track/i.test(v.url)) return v.url;
-  }
-  // otherwise construct the conventional NHC storm-graphics URL
-  if(s.binNumber && s.id){
-    return `https://www.nhc.noaa.gov/storm_graphics/${s.binNumber.toUpperCase()}/${s.id.toUpperCase()}_5day_cone_with_line_and_wind.png`;
-  }
-  return null;
+    cap.textContent="SOURCE NHC.NOAA.GOV"+(img.src.includes("wsrv.nl")?" · via wsrv.nl image proxy":""); wrap.appendChild(cap); };
+  img.onerror=()=>{ i++; if(i<cands.length) img.src=cands[i]; else wrap.innerHTML=fallback; };
+  img.src=cands[0];
 }
 function coneFallbackUrl(s){
   for(const k in s){
