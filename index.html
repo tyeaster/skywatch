@@ -84,6 +84,21 @@ aside{
 }
 .seg button+button{border-left:1px solid var(--line)}
 .seg button.active{color:#04110e;background:var(--accent);font-weight:700}
+/* forecast model layer controls */
+#fcstControls{margin-top:8px;display:flex;flex-direction:column;gap:9px}
+#fcstVar{
+  width:100%;padding:6px 8px;font-family:var(--mono);font-size:11px;letter-spacing:.03em;
+  color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:3px;
+}
+#fcstVar:focus{outline:none;border-color:var(--accent-dim)}
+.fcst-time{display:flex;flex-direction:column;gap:5px}
+#fcstHour{width:100%;accent-color:var(--accent);height:4px}
+.fcst-valid{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--muted)}
+.fcst-valid b{color:var(--ink)}
+.fcst-legend{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;color:var(--muted)}
+.fcst-bar{flex:1;height:9px;border-radius:2px;border:1px solid var(--line)}
+.fcst-attr{font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:var(--accent-dim)}
+.fcst-attr.off{color:var(--warn)}
 .statusline{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--muted);line-height:1.9;word-break:break-word}
 .statusline b{color:var(--ink);font-weight:600}
 .hint{
@@ -390,6 +405,29 @@ footer .dot{color:var(--accent-dim)}
           <button data-mode="off">OFF</button>
         </div>
       </div>
+      <div>
+        <div class="sec-title">FORECAST MODEL</div>
+        <button class="toggle" id="tgFcst">
+          <span><span class="t-name">Model Field</span><span class="t-sub">GFS · ECMWF · ICON</span></span>
+          <span class="lamp"></span>
+        </button>
+        <div id="fcstControls" hidden>
+          <select id="fcstVar" aria-label="Forecast variable">
+            <option value="wind_speed_10m">Wind speed</option>
+            <option value="wind_gusts_10m">Wind gusts</option>
+            <option value="precipitation">Precipitation</option>
+            <option value="cape">CAPE (storm energy)</option>
+            <option value="pressure_msl">Sea-level pressure</option>
+            <option value="temperature_2m">Temperature</option>
+          </select>
+          <div class="fcst-time">
+            <input type="range" id="fcstHour" min="0" max="72" step="1" value="0">
+            <div class="fcst-valid">VALID <b id="fcstValid">—</b> · <b id="fcstLead">NOW</b></div>
+          </div>
+          <div class="fcst-legend"><span id="fcstLegMin">—</span><div class="fcst-bar" id="fcstBar"></div><span id="fcstLegMax">—</span></div>
+          <div class="fcst-attr" id="fcstAttr">REAL NWP MODEL DATA · OPEN-METEO</div>
+        </div>
+      </div>
       <div class="statusline">
         RADAR <b id="stRadar">…</b><br>
         ALERTS <b id="stAlerts">…</b><br>
@@ -615,6 +653,8 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
   subdomains:"abcd",maxZoom:19
 }).addTo(map);
 
+const paneFcst  = map.createPane("fcst");  paneFcst.style.zIndex  = 350; // NWP field, under radar
+paneFcst.style.opacity = "0.62";
 const paneRadar = map.createPane("radar"); paneRadar.style.zIndex = 410;
 const paneSat   = map.createPane("sat");   paneSat.style.zIndex   = 405;
 const paneAlert = map.createPane("alerts");paneAlert.style.zIndex = 420;
@@ -691,7 +731,7 @@ document.getElementById("frameBar").addEventListener("click",e=>{
 });
 
 /* ---------- overlay toggles ---------- */
-const toggles = {radar:true,sat:false,alerts:true};
+const toggles = {radar:true,sat:false,alerts:true,fcstOn:false};
 function bindToggle(id,key,apply){
   const el = document.getElementById(id);
   el.addEventListener("click",()=>{
@@ -709,6 +749,111 @@ bindToggle("tgAlerts","alerts",()=>{
   if(!alertLayer) return;
   if(toggles.alerts) alertLayer.addTo(map); else map.removeLayer(alertLayer);
 });
+
+/* ---------- forecast model field (real NWP output via Open-Meteo) ----------
+   Samples Open-Meteo (a GFS / ECMWF-IFS / ICON blend) on a grid across the
+   current map view, then paints it as a smooth colored field with a
+   forecast-time slider. This is genuine numerical-model output — not the
+   statistical baseline used on the storm pages. */
+const FCST_VARS = {
+  wind_speed_10m:{label:"Wind speed", unit:"mph", extra:"&wind_speed_unit=mph",
+    ramp:[[0,"#0b3d34"],[10,"#1fa38a"],[22,"#39c2a5"],[35,"#ffe066"],[50,"#ffb14d"],[65,"#ff5d5d"],[85,"#c026d3"]], clearBelow:null},
+  wind_gusts_10m:{label:"Wind gusts", unit:"mph", extra:"&wind_speed_unit=mph",
+    ramp:[[0,"#0b3d34"],[15,"#1fa38a"],[30,"#39c2a5"],[45,"#ffe066"],[60,"#ffb14d"],[80,"#ff5d5d"],[100,"#c026d3"]], clearBelow:null},
+  precipitation:{label:"Precipitation", unit:"mm/h", extra:"&precipitation_unit=mm",
+    ramp:[[0,"#0b3d34"],[0.5,"#1f6feb"],[2,"#39c2a5"],[6,"#ffe066"],[12,"#ff7043"],[25,"#c026d3"]], clearBelow:0.1},
+  cape:{label:"CAPE", unit:"J/kg", extra:"",
+    ramp:[[0,"#0b3d34"],[250,"#1fa38a"],[1000,"#ffe066"],[2000,"#ffb14d"],[3500,"#ff5d5d"],[5000,"#c026d3"]], clearBelow:100},
+  pressure_msl:{label:"Sea-level pressure", unit:"hPa", extra:"",
+    ramp:[[980,"#b18cff"],[1000,"#6fb7ff"],[1013,"#39c2a5"],[1025,"#ffe066"],[1040,"#ff7043"]], clearBelow:null},
+  temperature_2m:{label:"Temperature", unit:"°F", extra:"&temperature_unit=fahrenheit",
+    ramp:[[-10,"#b18cff"],[20,"#6fb7ff"],[40,"#39c2a5"],[60,"#ffe066"],[80,"#ffb14d"],[100,"#ff5d5d"]], clearBelow:null}
+};
+const FCST_COLS=14, FCST_ROWS=10;
+let fcstState={on:false,variable:"wind_speed_10m",hour:0,grid:null,times:null,bounds:null,layer:null,key:""};
+
+function hexToRgb(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+function rampColor(v,ramp){
+  if(v<=ramp[0][0]) return hexToRgb(ramp[0][1]);
+  if(v>=ramp[ramp.length-1][0]) return hexToRgb(ramp[ramp.length-1][1]);
+  for(let i=1;i<ramp.length;i++){
+    if(v<=ramp[i][0]){ const a=ramp[i-1][0],b=ramp[i][0],ra=hexToRgb(ramp[i-1][1]),rb=hexToRgb(ramp[i][1]);
+      const t=(v-a)/((b-a)||1);
+      return [Math.round(ra[0]+(rb[0]-ra[0])*t),Math.round(ra[1]+(rb[1]-ra[1])*t),Math.round(ra[2]+(rb[2]-ra[2])*t)]; }
+  }
+  return hexToRgb(ramp[ramp.length-1][1]);
+}
+function setFcstAttr(txt,off){ const el=document.getElementById("fcstAttr"); if(!el)return; el.textContent=txt; el.classList.toggle("off",!!off); }
+
+async function loadForecastField(){
+  if(!fcstState.on) return;
+  const meta=FCST_VARS[fcstState.variable], b=map.getBounds();
+  const s=b.getSouth(),n=b.getNorth(),w=b.getWest(),e=b.getEast();
+  const lats=[],lons=[];
+  for(let r=0;r<FCST_ROWS;r++) for(let c=0;c<FCST_COLS;c++){
+    lats.push((n-(n-s)*r/(FCST_ROWS-1)).toFixed(3));   // row 0 = north edge
+    lons.push((w+(e-w)*c/(FCST_COLS-1)).toFixed(3));
+  }
+  fcstState.bounds=[[s,w],[n,e]];
+  setFcstAttr("LOADING MODEL DATA…");
+  try{
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lats.join(",")}&longitude=${lons.join(",")}`+
+      `&hourly=${fcstState.variable}${meta.extra}&forecast_days=3&timezone=UTC`;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json(), arr=Array.isArray(data)?data:[data];
+    fcstState.times=arr[0]&&arr[0].hourly?arr[0].hourly.time:[];
+    fcstState.grid=arr.map(p=>p&&p.hourly?p.hourly[fcstState.variable]:[]);
+    const hEl=document.getElementById("fcstHour"), max=Math.min(72,(fcstState.times.length-1)||0);
+    hEl.max=max; fcstState.hour=Math.min(fcstState.hour,max); hEl.value=fcstState.hour;
+    setFcstAttr("REAL NWP MODEL DATA · OPEN-METEO");
+    renderForecastField();
+  }catch(err){
+    fcstState.grid=null;
+    if(fcstState.layer){ map.removeLayer(fcstState.layer); fcstState.layer=null; }
+    setFcstAttr("MODEL DATA UNAVAILABLE",true);
+    console.warn("Forecast field:",err);
+  }
+}
+
+function renderForecastField(){
+  if(!fcstState.on||!fcstState.grid||!fcstState.bounds) return;
+  const meta=FCST_VARS[fcstState.variable], hr=fcstState.hour;
+  const cv=document.createElement("canvas"); cv.width=FCST_COLS; cv.height=FCST_ROWS;
+  const ctx=cv.getContext("2d"), img=ctx.createImageData(FCST_COLS,FCST_ROWS);
+  for(let i=0;i<FCST_ROWS*FCST_COLS;i++){
+    const series=fcstState.grid[i], v=series?series[hr]:null;
+    let rgb=[12,18,17], a=0;
+    if(v!=null&&!isNaN(v)){ rgb=rampColor(v,meta.ramp); a=255; if(meta.clearBelow!=null&&v<meta.clearBelow) a=0; }
+    img.data[i*4]=rgb[0]; img.data[i*4+1]=rgb[1]; img.data[i*4+2]=rgb[2]; img.data[i*4+3]=a;
+  }
+  ctx.putImageData(img,0,0);
+  const dataUrl=cv.toDataURL();
+  if(fcstState.layer){ fcstState.layer.setUrl(dataUrl); fcstState.layer.setBounds(fcstState.bounds); }
+  else fcstState.layer=L.imageOverlay(dataUrl,fcstState.bounds,{pane:"fcst",opacity:1,interactive:false}).addTo(map);
+  const t=fcstState.times&&fcstState.times[hr];
+  document.getElementById("fcstValid").textContent=t?t.replace("T"," ")+"Z":"—";
+  document.getElementById("fcstLead").textContent=hr===0?"NOW":"+"+hr+"H";
+}
+
+function updateFcstLegend(){
+  const meta=FCST_VARS[fcstState.variable], lo=meta.ramp[0][0], hi=meta.ramp[meta.ramp.length-1][0];
+  const stops=meta.ramp.map(([v,c])=>`${c} ${((v-lo)/((hi-lo)||1)*100).toFixed(0)}%`).join(",");
+  document.getElementById("fcstBar").style.background=`linear-gradient(90deg,${stops})`;
+  document.getElementById("fcstLegMin").textContent=lo;
+  document.getElementById("fcstLegMax").textContent=hi+" "+meta.unit;
+}
+
+bindToggle("tgFcst","fcstOn",()=>{
+  fcstState.on=toggles.fcstOn;
+  document.getElementById("fcstControls").hidden=!fcstState.on;
+  if(fcstState.on){ updateFcstLegend(); loadForecastField(); }
+  else if(fcstState.layer){ map.removeLayer(fcstState.layer); fcstState.layer=null; }
+});
+document.getElementById("fcstVar").addEventListener("change",e=>{ fcstState.variable=e.target.value; updateFcstLegend(); loadForecastField(); });
+document.getElementById("fcstHour").addEventListener("input",e=>{ fcstState.hour=+e.target.value; renderForecastField(); });
+let fcstMoveTimer=null;
+map.on("moveend",()=>{ if(!fcstState.on) return; clearTimeout(fcstMoveTimer); fcstMoveTimer=setTimeout(loadForecastField,700); });
 
 /* ---------- NWS alerts ---------- */
 let alertLayer = null;
