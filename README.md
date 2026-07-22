@@ -16,10 +16,12 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
 - **Tropics + Fronts** — active tropical cyclone cards from NHC, plus live NHC 7-day tropical outlooks and WPC surface-analysis / forecast-fronts charts. **Tap any storm** for a full research briefing subpage (deep-linkable via `#storm/<id>`):
   - Current intensity in kt / mph / km/h, min central pressure, and Saffir-Simpson category
   - A category ladder showing exactly what wind speed it must reach for the next category
-  - "How fast is it developing?" — a wind + pressure history chart built from snapshots recorded locally on each visit, with an intensification rate (kt/24h) and a rapid-intensification flag
-  - Position, motion, nearest coastline, and a straight-line path projection with an illustrative uncertainty cone (using NHC average track-error radii), alongside the official NHC forecast cone image
-  - Plain-language impact guidance and auto-collected links to the authoritative NHC advisories and graphics
-  - Every value is labeled by source — official NHC vs. SKYWATCH-computed — so estimates are never mistaken for the official forecast
+  - **Intensity forecast** — a damped-persistence wind forecast (+24/+48/+72 h) with an uncertainty band sized from NHC average intensity errors, plotted forward on a wind + pressure history chart, with an intensification rate and rapid-intensification flag
+  - **Track forecast** — a curved persistence + observed-turn-rate model (the CLIPER family of baseline the NHC uses as a skill benchmark) drawn with an uncertainty cone from NHC average track errors, alongside the official NHC forecast cone image
+  - Position, motion, and nearest coastline; plain-language impact guidance; auto-collected links to the authoritative NHC advisories and graphics
+  - A **Model & Methodology** card documenting exactly how the forecasts are made and their limits
+
+  **On the forecast model:** SKYWATCH's own track/intensity forecasts are a transparent *statistical baseline* (persistence + climatology), computed in-browser from the current snapshot plus locally-recorded history. It does not ingest numerical weather models, satellite, ocean heat, or wind shear, and it is expected to be beaten by the NHC's model consensus — every value is labeled *official NHC* vs. *SKYWATCH-computed*, and the app is explicit that the NHC forecast is authoritative for any safety decision.
 - **Learn** — field notes on reading radar reflectivity, watches vs. warnings, tropical classifications, surface charts, and IR imagery
 - Auto-refreshes all data every 5 minutes
 

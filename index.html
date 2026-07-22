@@ -1201,14 +1201,6 @@ function nearestCoast(lat,lon){
   });
   return best;
 }
-// dead-reckoning: project position t hours ahead along current heading (naive)
-function project(lat,lon,dirDeg,spdKt,t){
-  const nm=spdKt*t, r=Math.PI/180;
-  const dLat=(nm*Math.cos(dirDeg*r))/60;
-  const dLon=(nm*Math.sin(dirDeg*r))/60/Math.cos(lat*r);
-  return [lat+dLat, lon+dLon];
-}
-
 /* ---------- local intensity history (snapshot feed has none) ---------- */
 function recordStormObs(s){
   if(!s.id || s.intensity==null) return;
@@ -1237,6 +1229,80 @@ function intensRate(hist){
   const dtH=(newest.t-ref.t)/3600000;
   if(dtH<0.5) return null;
   return {rate:(newest.w-ref.w)/dtH*24, hours:dtH, dW:newest.w-ref.w};
+}
+
+/* ============================================================
+   SKYWATCH storm model — a transparent statistical BASELINE.
+   Track:     persistence of motion + observed turn-rate, damped.
+              This is the CLIPER family (climatology & persistence) —
+              the same class of model NHC runs as a skill benchmark.
+   Intensity: damped persistence of the recent observed trend.
+   Spread:    NHC ~5-yr average official forecast errors.
+   It does NOT ingest numerical weather models, satellite, ocean heat,
+   or wind shear. It cannot beat NHC's supercomputer guidance, and it
+   is not a substitute for official forecasts. Every output here is
+   labelled with its confidence and lead-time error.
+   ============================================================ */
+const MODEL_TAU_TRACK  = 30;   // h — turn-rate damping timescale
+const MODEL_TAU_INTENS = 24;   // h — intensity-trend damping timescale
+// NHC ~5-yr average official errors: track (nm) and intensity (kt) by lead hour
+const TRACK_ERR  = {12:26,24:40,36:55,48:69,72:98,96:139,120:174};
+const INTENS_ERR = {12:7,24:10,36:12,48:13,72:15,96:17,120:18};
+
+function goodTrackPts(hist){ return hist.filter(h=>h.lat!=null&&h.lon!=null); }
+
+// derive speed (kt), heading (deg), and turn rate (deg/h) from local track history
+function estimateMotion(hist,s){
+  const pts=goodTrackPts(hist), segs=[];
+  for(let i=1;i<pts.length;i++){
+    const dtH=(pts[i].t-pts[i-1].t)/3600000;
+    if(dtH<=0.2) continue;
+    const d=haversine(pts[i-1].lat,pts[i-1].lon,pts[i].lat,pts[i].lon);
+    if(d<1) continue; // ~stationary between snapshots
+    segs.push({t:(pts[i].t+pts[i-1].t)/2, spd:d/dtH,
+               brg:bearing(pts[i-1].lat,pts[i-1].lon,pts[i].lat,pts[i].lon)});
+  }
+  if(segs.length>=2){
+    const recent=segs.slice(-4);
+    let ws=0,wsum=0; recent.forEach((sg,i)=>{ const w=i+1; ws+=sg.spd*w; wsum+=w; });
+    const speed=Math.min(Math.max(ws/wsum,0),40);
+    const heading=recent[recent.length-1].brg;
+    let prev=recent[0].brg; const unwrapped=[prev];
+    for(let i=1;i<recent.length;i++){ let b=recent[i].brg; while(b-prev>180)b-=360; while(b-prev<-180)b+=360; unwrapped.push(b); prev=b; }
+    const span=(recent[recent.length-1].t-recent[0].t)/3600000;
+    let turn=span>0?(unwrapped[unwrapped.length-1]-unwrapped[0])/span:0;
+    turn=Math.max(-3,Math.min(3,turn)); // deg/h, physically sane bound
+    return {speed,heading,turn,source:"history",segs:segs.length};
+  }
+  if(s.movementDir!=null&&s.movementSpeed!=null)
+    return {speed:s.movementSpeed,heading:s.movementDir,turn:0,source:"official-vector",segs:0};
+  return null;
+}
+
+// curved track forecast: step hourly, applying a damped turn to the heading
+function forecastTrack(s,hist,hours){
+  const m=estimateMotion(hist,s), lat=s.latitudeNumeric, lon=s.longitudeNumeric;
+  if(!m||lat==null||lon==null) return null;
+  const out=[], maxH=Math.max(...hours), r=Math.PI/180;
+  let cLat=lat,cLon=lon,cHdg=m.heading;
+  for(let t=1;t<=maxH;t++){
+    cHdg=(cHdg + m.turn*Math.exp(-(t-1)/MODEL_TAU_TRACK) + 360)%360;
+    cLat += (m.speed*Math.cos(cHdg*r))/60;
+    cLon += (m.speed*Math.sin(cHdg*r))/60/Math.cos(cLat*r);
+    if(hours.includes(t)) out.push({h:t,lat:cLat,lon:cLon,hdg:cHdg});
+  }
+  return {points:out, motion:m};
+}
+
+// damped-persistence intensity forecast with a lead-time uncertainty band
+function forecastIntensity(s,hist,hours){
+  const w0=parseInt(s.intensity,10); if(isNaN(w0)) return null;
+  const rate=intensRate(hist), r0=rate?rate.rate/24:0; // kt/h
+  return hours.map(t=>{
+    const w=Math.max(0, w0 + r0*MODEL_TAU_INTENS*(1-Math.exp(-t/MODEL_TAU_INTENS)));
+    const e=INTENS_ERR[t] || (7+0.15*t);
+    return {h:t, w:Math.round(w), lo:Math.max(0,Math.round(w-e)), hi:Math.round(w+e)};
+  });
 }
 
 /* ---------- storm detail subpage ---------- */
@@ -1304,17 +1370,32 @@ function openStorm(id){
       `The complete official best-track is at <a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener">NHC</a>.</div>`;
   }
 
-  // projected path (naive)
+  // SKYWATCH model — curved track + damped-persistence intensity
+  const track  = forecastTrack(s, hist, [12,24,36,48,72]);
+  const iFcst  = forecastIntensity(s, hist, [24,48,72]);
+  const modelSrc = track ? (track.motion.source==="history"
+        ? "fitted from "+track.motion.segs+" observed motion segment(s)"
+        : "seeded from the NHC motion vector (need more history to fit turning)") : null;
+
+  // projected path readout
   let projHtml="";
-  if(lat!=null&&lon!=null&&s.movementDir!=null&&s.movementSpeed!=null){
-    const p24=project(lat,lon,s.movementDir,s.movementSpeed,24);
-    const p48=project(lat,lon,s.movementDir,s.movementSpeed,48);
-    const c24=nearestCoast(p24[0],p24[1]);
-    projHtml=`<div class="stat-grid">
-      <div class="stat"><div class="lab">IN 24 H (EST)</div><div class="val" style="font-size:15px">${fmtLat(p24[0])} ${fmtLon(p24[1])}</div>
-        <div class="sub2">nearest coast: ${c24.name}, ${Math.round(c24.nm)} nm</div></div>
-      <div class="stat"><div class="lab">IN 48 H (EST)</div><div class="val" style="font-size:15px">${fmtLat(p48[0])} ${fmtLon(p48[1])}</div></div>
-    </div>`;
+  if(track){
+    const p24=track.points.find(p=>p.h===24), p48=track.points.find(p=>p.h===48);
+    const c24=p24?nearestCoast(p24.lat,p24.lon):null;
+    const c48=p48?nearestCoast(p48.lat,p48.lon):null;
+    const cell=(h,p,c)=>p?`<div class="stat"><div class="lab">FORECAST +${h} H</div>`+
+        `<div class="val" style="font-size:15px">${fmtLat(p.lat)} ${fmtLon(p.lon)}</div>`+
+        `<div class="sub2">${c?"nearest coast: "+c.name+", "+Math.round(c.nm)+" nm":""}</div></div>`:"";
+    projHtml=`<div class="stat-grid">${cell(24,p24,c24)}${cell(48,p48,c48)}</div>`;
+  }
+
+  // intensity forecast readout
+  let intensFcstHtml="";
+  if(iFcst){
+    const cell=f=>{ const c=catFromWind(f.w); return `<div class="stat"><div class="lab">FORECAST +${f.h} H</div>`+
+      `<div class="val" style="font-size:17px;color:${c.color}">${f.w} <small>KT</small></div>`+
+      `<div class="sub2">range ${f.lo}–${f.hi} kt · ${c.short}</div></div>`; };
+    intensFcstHtml=`<div class="stat-grid">${iFcst.map(cell).join("")}</div>`;
   }
 
   // impacts by category
@@ -1347,13 +1428,14 @@ function openStorm(id){
     <div class="sd-note">Where this storm sits now (highlighted) and the wind needed for each step.</div>
     <div class="ladder">${ladder}</div>
 
-    <div class="sd-sec">HOW FAST IS IT DEVELOPING?</div>
-    <div class="sd-note"><b>SKYWATCH-TRACKED</b> — built from snapshots recorded on this device.</div>
+    <div class="sd-sec">DEVELOPMENT &amp; INTENSITY FORECAST</div>
+    <div class="sd-note"><b>SKYWATCH MODEL</b> — damped-persistence of the observed trend. Ranges are NHC average intensity errors (±10 kt at 24 h, growing with lead time). Not a numerical model; see methodology below.</div>
     ${devHtml}
+    ${intensFcstHtml}
     <canvas id="stormHist" class="sd-canvas" width="860" height="240"></canvas>
 
-    <div class="sd-sec">POSITION, MOTION &amp; PROJECTED PATH</div>
-    <div class="sd-note"><b>Position &amp; motion are OFFICIAL.</b> The path plot and 24/48 h points are a SKYWATCH straight-line (dead-reckoning) estimate with an illustrative uncertainty cone using NHC average track-error radii — <b>not</b> the official forecast. Use the official cone below for planning.</div>
+    <div class="sd-sec">POSITION, MOTION &amp; TRACK FORECAST</div>
+    <div class="sd-note"><b>Position &amp; motion are OFFICIAL (NHC).</b> The forecast track is the <b>SKYWATCH model</b> (persistence + observed turn-rate, ${modelSrc||"insufficient data"}), drawn with an uncertainty cone from NHC average track errors. It is a statistical baseline — <b>the official NHC cone below is authoritative for planning.</b></div>
     <div class="stat-grid">
       <div class="stat"><div class="lab">POSITION</div><div class="val" style="font-size:15px">${lat!=null?fmtLat(lat)+" "+fmtLon(lon):"–"}</div></div>
       <div class="stat"><div class="lab">MOVEMENT</div><div class="val" style="font-size:15px">${s.movementDir!=null?"toward "+compass(s.movementDir):"–"}</div>
@@ -1372,6 +1454,16 @@ function openStorm(id){
     <div class="sd-note">General category-based guidance — local impacts depend on the official forecast, your exact location, surge, and rainfall.</div>
     <ul class="impacts">${impacts}</ul>
 
+    <div class="sd-sec">MODEL &amp; METHODOLOGY</div>
+    <div class="sd-note">Full transparency on how SKYWATCH's own forecasts above are made — and their limits.</div>
+    <dl class="glossary">
+      <div><dt>TRACK MODEL</dt>Persistence of motion plus the storm's recently observed turn-rate, damped over time (a curved extrapolation). This is the <b>CLIPER</b> family — climatology &amp; persistence — the same class of baseline the NHC runs to measure the skill of its real forecasts against.</div>
+      <div><dt>INTENSITY MODEL</dt>Damped persistence: the recent intensification/weakening trend is projected forward and allowed to flatten, since trends rarely continue linearly.</div>
+      <div><dt>UNCERTAINTY</dt>The cone and the intensity ranges use the NHC's published ~5-year <i>average</i> forecast errors by lead time (track ≈ 40 nm at 24 h → 174 nm at 120 h; intensity ≈ ±10 kt at 24 h).</div>
+      <div><dt>WHAT IT DOES NOT DO</dt>It does <b>not</b> ingest numerical weather-prediction models, satellite imagery, ocean heat content, or wind shear — the inputs that actually drive intensity and recurvature. It runs entirely in your browser on the current snapshot plus locally-recorded history.</div>
+      <div><dt>HOW GOOD IS IT?</dt>A persistence/climatology baseline is genuinely useful for the next 12–24 h and for sanity-checking, but it is <b>expected to be beaten</b> by the NHC's supercomputer model consensus, especially at 2–5 days and around recurvature or rapid intensification. Treat SKYWATCH's forecast as a well-labelled estimate, and the NHC forecast as the authority.</div>
+    </dl>
+
     <div class="sd-sec">OFFICIAL NHC PRODUCTS</div>
     <div class="sd-note">Authoritative advisories &amp; graphics — always defer to these.</div>
     <div class="prod-links">${links}</div>
@@ -1379,8 +1471,8 @@ function openStorm(id){
     <div class="sd-note" style="margin-top:18px">SKYWATCH is an informational tool built on free public data and is <b>not</b> an official source. For watches, warnings, and evacuation decisions, follow the National Hurricane Center and your local emergency management.</div>
   `;
 
-  drawStormHistory(hist);
-  drawStormTrack(s);
+  drawStormHistory(hist, iFcst);
+  drawStormTrack(s, track);
   mountCone(s);
 }
 
@@ -1463,7 +1555,7 @@ function coneFallbackUrl(s){
 }
 
 /* ---------- storm canvases ---------- */
-function drawStormHistory(hist){
+function drawStormHistory(hist, iFcst){
   const cv=document.getElementById("stormHist"); if(!cv) return;
   const ctx=cv.getContext("2d"), W=cv.width, H=cv.height;
   ctx.clearRect(0,0,W,H);
@@ -1473,9 +1565,12 @@ function drawStormHistory(hist){
     ctx.fillText("Not enough local history yet — revisit over the coming hours.",W/2,H/2);
     ctx.textAlign="left"; return;
   }
-  const t0=hist[0].t, t1=hist[hist.length-1].t, tSpan=(t1-t0)||1;
+  const t0=hist[0].t, tNow=hist[hist.length-1].t;
+  const fMax=(iFcst&&iFcst.length)?Math.max(...iFcst.map(f=>f.h)):0;
+  const tEnd=tNow + fMax*3600000, tSpan=(tEnd-t0)||1;
   const winds=hist.map(h=>h.w), pres=hist.filter(h=>h.p).map(h=>h.p);
-  const wMin=Math.min(...winds,34), wMax=Math.max(...winds,64);
+  const fHi=(iFcst||[]).map(f=>f.hi), fLo=(iFcst||[]).map(f=>f.lo);
+  const wMin=Math.min(...winds,34,...fLo), wMax=Math.max(...winds,64,...fHi);
   const pMin=pres.length?Math.min(...pres)-4:960, pMax=pres.length?Math.max(...pres)+4:1010;
   const x=t=>padL+(t-t0)/tSpan*(W-padL-padR);
   const yw=w=>H-padB-(w-wMin)/((wMax-wMin)||1)*(H-padT-padB);
@@ -1484,11 +1579,32 @@ function drawStormHistory(hist){
   SS.forEach(c=>{ if(c.min>=wMin&&c.min<=wMax){ const y=yw(c.min);
     ctx.strokeStyle="#1c2a27"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
     ctx.setLineDash([]); ctx.fillStyle="#3d524d"; ctx.font="9px ui-monospace,Menlo,monospace"; ctx.fillText(c.short,padL+2,y-2); }});
-  // pressure line
+  // "now" divider + forecast shading
+  if(fMax){
+    ctx.fillStyle="rgba(255,255,255,.02)"; ctx.fillRect(x(tNow),padT,x(tEnd)-x(tNow),H-padT-padB);
+    ctx.strokeStyle="#3d524d"; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(x(tNow),padT); ctx.lineTo(x(tNow),H-padB); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="#5f7a74"; ctx.font="9px ui-monospace,Menlo,monospace";
+    ctx.textAlign="right"; ctx.fillText("NOW",x(tNow)-6,padT+8);
+    ctx.textAlign="left";  ctx.fillText("FORECAST →",x(tNow)+6,padT+8);
+    // intensity uncertainty band
+    const band=[{t:tNow,lo:winds[winds.length-1],hi:winds[winds.length-1]}]
+      .concat(iFcst.map(f=>({t:tNow+f.h*3600000,lo:f.lo,hi:f.hi})));
+    ctx.beginPath();
+    band.forEach((b,i)=>{ const X=x(b.t),Y=yw(b.hi); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); });
+    for(let i=band.length-1;i>=0;i--){ ctx.lineTo(x(band[i].t),yw(band[i].lo)); }
+    ctx.closePath(); ctx.fillStyle="rgba(255,112,67,.14)"; ctx.fill();
+    // forecast center line
+    ctx.beginPath(); ctx.moveTo(x(tNow),yw(winds[winds.length-1]));
+    iFcst.forEach(f=>ctx.lineTo(x(tNow+f.h*3600000),yw(f.w)));
+    ctx.strokeStyle="#ff7043"; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.stroke(); ctx.setLineDash([]);
+    iFcst.forEach(f=>{ ctx.fillStyle="#ff7043"; ctx.beginPath(); ctx.arc(x(tNow+f.h*3600000),yw(f.w),2.5,0,7); ctx.fill();
+      ctx.fillStyle="#cfe7e2"; ctx.font="9px ui-monospace,Menlo,monospace"; ctx.fillText("+"+f.h+"h",x(tNow+f.h*3600000)-8,yw(f.w)-6); });
+  }
+  // pressure history line
   if(pres.length){ ctx.beginPath();
     hist.forEach((h,i)=>{ if(h.p==null) return; const X=x(h.t),Y=yp(h.p); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); });
     ctx.strokeStyle="#6fb7ff"; ctx.lineWidth=1.5; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]); }
-  // wind line
+  // wind history line
   ctx.beginPath();
   hist.forEach((h,i)=>{ const X=x(h.t),Y=yw(h.w); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); });
   ctx.strokeStyle="#ff7043"; ctx.lineWidth=2.5; ctx.lineJoin="round"; ctx.stroke();
@@ -1500,53 +1616,46 @@ function drawStormHistory(hist){
     ctx.fillText(pMax+"mb",W-4,yp(pMax)+4); ctx.fillText(pMin+"mb",W-4,yp(pMin)+4); ctx.textAlign="left"; }
   ctx.fillStyle="#5f7a74"; ctx.font="9px ui-monospace,Menlo,monospace";
   ctx.fillText(new Date(t0).toUTCString().slice(5,17),padL,H-8);
-  ctx.textAlign="right"; ctx.fillText(new Date(t1).toUTCString().slice(5,17)+"Z",W-padR,H-8); ctx.textAlign="left";
-  ctx.fillStyle="#ff7043"; ctx.fillText("● WIND",W/2-50,H-8);
-  if(pres.length){ ctx.fillStyle="#6fb7ff"; ctx.fillText("- - PRESSURE",W/2+10,H-8); }
+  ctx.textAlign="right"; ctx.fillText(new Date(tEnd).toUTCString().slice(5,17)+"Z",W-padR,H-8); ctx.textAlign="left";
+  ctx.fillStyle="#ff7043"; ctx.fillText("● WIND"+(fMax?"  - - FORECAST":""),W/2-70,H-8);
+  if(pres.length){ ctx.fillStyle="#6fb7ff"; ctx.fillText("- - PRESSURE",W/2+40,H-8); }
 }
 
-// projected path + illustrative uncertainty cone (NHC average track-error radii, nm)
+// track diagram: SKYWATCH curved-model forecast + uncertainty cone (NHC avg track errors)
 const CONE_R={12:26,24:40,36:55,48:69,72:98,96:139,120:174};
-function drawStormTrack(s){
+function drawStormTrack(s, track){
   const cv=document.getElementById("stormTrack"); if(!cv) return;
   const ctx=cv.getContext("2d"), W=cv.width, H=cv.height;
   ctx.clearRect(0,0,W,H);
   const lat=s.latitudeNumeric, lon=s.longitudeNumeric;
   if(lat==null||lon==null){ ctx.fillStyle="#5f7a74"; ctx.font="14px ui-monospace,Menlo,monospace"; ctx.textAlign="center";
     ctx.fillText("Position unavailable.",W/2,H/2); ctx.textAlign="left"; return; }
-  const dir=s.movementDir, spd=s.movementSpeed;
-  // build points: now + projections (if motion known)
-  const pts=[{h:0,lat,lon}];
-  const coneHours=[12,24,36,48,72];
-  if(dir!=null&&spd!=null){ coneHours.forEach(h=>{ const [la,lo]=project(lat,lon,dir,spd,h); pts.push({h,lat:la,lon:lo}); }); }
-  // include nearest coast for context
+  // forecast points from the model (curved); fall back to just NOW
+  const fpts=(track&&track.points)?track.points:[];
+  const pts=[{h:0,lat,lon}].concat(fpts);
   const coast=nearestCoast(lat,lon);
   const allLat=pts.map(p=>p.lat).concat(coast.lat), allLon=pts.map(p=>p.lon).concat(coast.lon);
-  // add cone radii (deg) to bounds so the cone fits
-  const maxRdeg=(dir!=null&&spd!=null)?CONE_R[72]/60:2;
-  let laMin=Math.min(...allLat)-maxRdeg, laMax=Math.max(...allLat)+maxRdeg;
-  let loMin=Math.min(...allLon)-maxRdeg, loMax=Math.max(...allLon)+maxRdeg;
-  const pad=28;
-  const midLat=(laMin+laMax)/2;
-  const sx=(W-2*pad)/((loMax-loMin)||1), sy=(H-2*pad)/((laMax-laMin)||1);
-  const sc=Math.min(sx,sy);
+  const maxRdeg=fpts.length?CONE_R[72]/60:2;
+  const laMin=Math.min(...allLat)-maxRdeg, laMax=Math.max(...allLat)+maxRdeg;
+  const loMin=Math.min(...allLon)-maxRdeg, loMax=Math.max(...allLon)+maxRdeg;
+  const pad=28, midLat=(laMin+laMax)/2;
+  const sc=Math.min((W-2*pad)/((loMax-loMin)||1),(H-2*pad)/((laMax-laMin)||1));
   const X=lo=>pad+(lo-loMin)*sc + (W-2*pad-((loMax-loMin)*sc))/2;
   const Y=la=>pad+(laMax-la)*sc;
-  const nmToPx=nm=>nm/60*sc*Math.cos(midLat*Math.PI/180); // approx (lon-based), fine for illustration
-  // uncertainty cone (filled)
-  if(dir!=null&&spd!=null){
-    ctx.fillStyle="rgba(255,112,67,.10)"; ctx.strokeStyle="rgba(255,112,67,.35)"; ctx.lineWidth=1;
-    coneHours.forEach(h=>{ const [la,lo]=project(lat,lon,dir,spd,h); const rpx=Math.max(nmToPx(CONE_R[h]||CONE_R[72]),2);
-      ctx.beginPath(); ctx.arc(X(lo),Y(la),rpx,0,7); ctx.fill(); });
+  const nmToPx=nm=>nm/60*sc*Math.cos(midLat*Math.PI/180);
+  // uncertainty cone (filled circles at each forecast point)
+  if(fpts.length){
+    ctx.fillStyle="rgba(255,112,67,.10)";
+    fpts.forEach(p=>{ const rpx=Math.max(nmToPx(CONE_R[p.h]||CONE_R[72]),2);
+      ctx.beginPath(); ctx.arc(X(p.lon),Y(p.lat),rpx,0,7); ctx.fill(); });
   }
   // coast marker
   ctx.fillStyle="#39c2a5"; ctx.beginPath(); ctx.arc(X(coast.lon),Y(coast.lat),4,0,7); ctx.fill();
-  ctx.fillStyle="#39c2a5"; ctx.font="10px ui-monospace,Menlo,monospace";
-  ctx.fillText(coast.name,X(coast.lon)+7,Y(coast.lat)+3);
-  // projected track line
+  ctx.font="10px ui-monospace,Menlo,monospace"; ctx.fillText(coast.name,X(coast.lon)+7,Y(coast.lat)+3);
+  // forecast track line (curved)
   if(pts.length>1){ ctx.beginPath(); pts.forEach((p,i)=>{ i?ctx.lineTo(X(p.lon),Y(p.lat)):ctx.moveTo(X(p.lon),Y(p.lat)); });
     ctx.strokeStyle="#ff7043"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
-    pts.slice(1).forEach(p=>{ ctx.fillStyle="#ff7043"; ctx.beginPath(); ctx.arc(X(p.lon),Y(p.lat),3,0,7); ctx.fill();
+    fpts.forEach(p=>{ ctx.fillStyle="#ff7043"; ctx.beginPath(); ctx.arc(X(p.lon),Y(p.lat),3,0,7); ctx.fill();
       ctx.fillStyle="#cfe7e2"; ctx.font="9px ui-monospace,Menlo,monospace"; ctx.fillText("+"+p.h+"h",X(p.lon)+6,Y(p.lat)-4); }); }
   // current position (big)
   const cat=catFromWind(parseInt(s.intensity,10));
@@ -1555,7 +1664,7 @@ function drawStormTrack(s){
   ctx.fillStyle="#cfe7e2"; ctx.font="700 11px ui-monospace,Menlo,monospace"; ctx.fillText("NOW",X(lon)+9,Y(lat)+4);
   // legend
   ctx.fillStyle="#5f7a74"; ctx.font="9px ui-monospace,Menlo,monospace";
-  ctx.fillText("○ illustrative uncertainty (NHC avg track error)  ·  - - straight-line projection  ·  ● nearest coast",pad,H-8);
+  ctx.fillText("○ cone = NHC avg track error  ·  - - SKYWATCH model track  ·  ● nearest coast",pad,H-8);
 }
 
 /* ---------- refresh cycle ---------- */
