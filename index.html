@@ -430,6 +430,7 @@ footer .dot{color:var(--accent-dim)}
           <select id="fcstVar" aria-label="Forecast variable">
             <option value="wind_speed_10m">Wind speed</option>
             <option value="wind_gusts_10m">Wind gusts</option>
+            <option value="wind_shear">Wind shear (200–850)</option>
             <option value="precipitation">Precipitation</option>
             <option value="cape">CAPE (storm energy)</option>
             <option value="pressure_msl">Sea-level pressure</option>
@@ -788,6 +789,10 @@ const FCST_VARS = {
     ramp:[[0,"#0b3d34"],[10,"#1fa38a"],[22,"#39c2a5"],[35,"#ffe066"],[50,"#ffb14d"],[65,"#ff5d5d"],[85,"#c026d3"]], clearBelow:null},
   wind_gusts_10m:{label:"Wind gusts", unit:"mph", extra:"&wind_speed_unit=mph",
     ramp:[[0,"#0b3d34"],[15,"#1fa38a"],[30,"#39c2a5"],[45,"#ffe066"],[60,"#ffb14d"],[80,"#ff5d5d"],[100,"#c026d3"]], clearBelow:null},
+  wind_shear:{label:"Wind shear 200–850", unit:"kt", extra:"&wind_speed_unit=kn", derived:true,
+    vars:["wind_speed_200hPa","wind_direction_200hPa","wind_speed_850hPa","wind_direction_850hPa"],
+    compute:shearAt, clearBelow:null,
+    ramp:[[0,"#0b6b3a"],[10,"#39c2a5"],[20,"#ffe066"],[30,"#ffb14d"],[40,"#ff5d5d"],[60,"#c026d3"]]},
   precipitation:{label:"Precipitation", unit:"mm/h", extra:"&precipitation_unit=mm",
     ramp:[[0,"#0b3d34"],[0.5,"#1f6feb"],[2,"#39c2a5"],[6,"#ffe066"],[12,"#ff7043"],[25,"#c026d3"]], clearBelow:0.1},
   cape:{label:"CAPE", unit:"J/kg", extra:"",
@@ -800,6 +805,19 @@ const FCST_VARS = {
 const FCST_COLS=14, FCST_ROWS=10;
 let fcstState={on:false,variable:"wind_speed_10m",hour:0,grid:null,times:null,bounds:null,layer:null,key:""};
 
+// Deep-layer vertical wind shear: magnitude of the 200 hPa minus 850 hPa wind
+// vector (kt). Low = favorable for tropical storms (green); high = hostile (red).
+function shearAt(hourly,hr){
+  const s2=hourly.wind_speed_200hPa,d2=hourly.wind_direction_200hPa,
+        s8=hourly.wind_speed_850hPa,d8=hourly.wind_direction_850hPa;
+  if(!s2||!s8) return null;
+  const w2=s2[hr],a2=d2[hr],w8=s8[hr],a8=d8[hr];
+  if(w2==null||w8==null||a2==null||a8==null) return null;
+  const r=Math.PI/180;
+  const u2=-w2*Math.sin(a2*r),v2=-w2*Math.cos(a2*r);   // met convention (dir = FROM)
+  const u8=-w8*Math.sin(a8*r),v8=-w8*Math.cos(a8*r);
+  return Math.hypot(u2-u8, v2-v8);
+}
 function hexToRgb(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
 function rampColor(v,ramp){
   if(v<=ramp[0][0]) return hexToRgb(ramp[0][1]);
@@ -825,13 +843,14 @@ async function loadForecastField(){
   fcstState.bounds=[[s,w],[n,e]];
   setFcstAttr("LOADING MODEL DATA…");
   try{
+    const hourlyParam=meta.derived?meta.vars.join(","):fcstState.variable;
     const url=`https://api.open-meteo.com/v1/forecast?latitude=${lats.join(",")}&longitude=${lons.join(",")}`+
-      `&hourly=${fcstState.variable}${meta.extra}&forecast_days=3&timezone=UTC`;
+      `&hourly=${hourlyParam}${meta.extra}&forecast_days=3&timezone=UTC`;
     const res=await fetch(url);
     if(!res.ok) throw new Error("HTTP "+res.status);
     const data=await res.json(), arr=Array.isArray(data)?data:[data];
     fcstState.times=arr[0]&&arr[0].hourly?arr[0].hourly.time:[];
-    fcstState.grid=arr.map(p=>p&&p.hourly?p.hourly[fcstState.variable]:[]);
+    fcstState.grid=arr.map(p=>p&&p.hourly?p.hourly:{});   // store the whole hourly object per point
     const hEl=document.getElementById("fcstHour"), max=Math.min(72,(fcstState.times.length-1)||0);
     hEl.max=max; fcstState.hour=Math.min(fcstState.hour,max); hEl.value=fcstState.hour;
     setFcstAttr("REAL NWP MODEL DATA · OPEN-METEO");
@@ -850,7 +869,9 @@ function renderForecastField(){
   const cv=document.createElement("canvas"); cv.width=FCST_COLS; cv.height=FCST_ROWS;
   const ctx=cv.getContext("2d"), img=ctx.createImageData(FCST_COLS,FCST_ROWS);
   for(let i=0;i<FCST_ROWS*FCST_COLS;i++){
-    const series=fcstState.grid[i], v=series?series[hr]:null;
+    const hourly=fcstState.grid[i];
+    const v = meta.derived ? (hourly?meta.compute(hourly,hr):null)
+                           : (hourly&&hourly[fcstState.variable]?hourly[fcstState.variable][hr]:null);
     let rgb=[12,18,17], a=0;
     if(v!=null&&!isNaN(v)){ rgb=rampColor(v,meta.ramp); a=255; if(meta.clearBelow!=null&&v<meta.clearBelow) a=0; }
     img.data[i*4]=rgb[0]; img.data[i*4+1]=rgb[1]; img.data[i*4+2]=rgb[2]; img.data[i*4+3]=a;
