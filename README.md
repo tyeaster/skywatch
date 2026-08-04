@@ -17,6 +17,7 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
   - Click anywhere (or **"Use my location"**) for a point forecast: current conditions, **air quality (US AQI + PM2.5)**, **sunrise/sunset and moon phase**, a 48-hour temperature sparkline (canvas), and a 7-day outlook
   - **Use my location** — one tap centers the map on where you are and sets it as your tracked favorite (browser geolocation)
   - **Favorite location** — search any place by name and pin it. A sidebar card tracks its current conditions, today's hi/lo, and any active NWS warnings/advisories (color-coded, with a red glow when something is active). Saved in your browser (localStorage) so it persists across visits; "View on map" flies there and opens the full forecast.
+- **Severe** — NOAA Storm Prediction Center convective outlooks: Day 1–3 categorical risk (Marginal → High), the Day 4–8 outlook, and Day 1 tornado / hail / damaging-wind probabilities, with a risk-level legend
 - **Tropics + Fronts** — active tropical cyclone cards from NHC, plus live NHC 7-day tropical outlooks and WPC surface-analysis / forecast-fronts charts. **Tap any storm** for a full research briefing subpage (deep-linkable via `#storm/<id>`):
   - Current intensity in kt / mph / km/h, min central pressure, and Saffir-Simpson category
   - A category ladder showing exactly what wind speed it must reach for the next category
