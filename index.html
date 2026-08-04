@@ -155,6 +155,21 @@ aside{
 .fav-actions button:hover{color:var(--accent);border-color:var(--accent-dim)}
 .fav-actions .rm:hover{color:var(--warn);border-color:var(--warn)}
 .fav-pin{font-size:20px;line-height:1;text-shadow:0 0 5px rgba(57,194,165,.9),0 1px 2px #000}
+#geoBtn{
+  width:100%;margin-top:6px;padding:7px 9px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  color:var(--accent);background:var(--panel-2);border:1px solid var(--line);border-radius:3px;text-align:center;
+}
+#geoBtn:hover{border-color:var(--accent-dim);background:rgba(57,194,165,.06)}
+#geoBtn.busy{color:var(--muted)}
+
+/* point-forecast conditions strip (air quality / sun / moon) */
+#fcConditions{margin:4px 0 4px}
+.cond-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.cond{background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.cond .cl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--muted);margin-bottom:4px}
+.cond .cv{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1.15}
+.cond .cs{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.aqi-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}
 
 /* ---------- map ---------- */
 .map-wrap{flex:1;position:relative;min-width:0}
@@ -394,6 +409,7 @@ footer .dot{color:var(--accent-dim)}
           <input id="favInput" placeholder="Track a place…" aria-label="Search for a favorite location">
           <button type="submit" title="Search">⌕</button>
         </form>
+        <button id="geoBtn" type="button">📍 USE MY LOCATION</button>
         <div id="favResults"></div>
         <div id="favCard"></div>
       </div>
@@ -478,6 +494,7 @@ footer .dot{color:var(--accent-dim)}
         </div>
         <div class="fc-body">
           <div class="fc-now" id="fcNow"></div>
+          <div id="fcConditions"></div>
           <div class="fc-sub">NEXT 48 HOURS — TEMP °F</div>
           <canvas id="spark" width="600" height="180"></canvas>
           <div class="fc-sub">7-DAY OUTLOOK</div>
@@ -1036,13 +1053,16 @@ async function loadPointForecast(lat,lon){
   fcPanel.classList.add("open");
   document.getElementById("fcCoords").textContent = `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
   document.getElementById("fcNow").innerHTML = "";
+  document.getElementById("fcConditions").innerHTML = "";
   document.getElementById("fcDays").innerHTML = '<div class="fc-msg">Loading…</div>';
   drawSpark([]);
+  const reqId=++fcReqId; fcAqiData=null;
+  loadAirQuality(lat,lon,reqId);                 // independent — fills in when ready
   try{
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`+
       `&current=temperature_2m,apparent_temperature,wind_speed_10m,wind_direction_10m,relative_humidity_2m,weather_code`+
       `&hourly=temperature_2m&forecast_hours=48`+
-      `&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=7`+
+      `&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&forecast_days=7`+
       `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
     const res = await fetch(url);
     if(!res.ok) throw new Error("HTTP "+res.status);
@@ -1055,6 +1075,8 @@ async function loadPointForecast(lat,lon){
       `FEELS ${Math.round(c.apparent_temperature)}° · RH ${c.relative_humidity_2m}%<br>`+
       `WIND ${windArrow(c.wind_direction_10m)} ${Math.round(c.wind_speed_10m)} MPH</span>`;
 
+    renderConditions(d.daily);
+    applyAqi(reqId);                             // fill AQI if it already resolved
     drawSpark(d.hourly.temperature_2m||[]);
 
     const days = d.daily;
@@ -1069,6 +1091,65 @@ async function loadPointForecast(lat,lon){
     document.getElementById("fcDays").innerHTML = '<div class="fc-msg">FORECAST UNAVAILABLE — CHECK CONNECTION</div>';
     console.warn("Point forecast:",err);
   }
+}
+
+/* sun times + moon phase card (air quality is filled in separately) */
+function renderConditions(daily){
+  const el=document.getElementById("fcConditions"); if(!el) return;
+  const fmtT=iso=>{ if(!iso) return "—"; const t=new Date(iso);
+    return t.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}); };
+  const sr=daily&&daily.sunrise?daily.sunrise[0]:null, ss=daily&&daily.sunset?daily.sunset[0]:null;
+  const moon=moonPhase(new Date());
+  el.innerHTML = `<div class="cond-grid">
+    <div class="cond" id="condAqi"><div class="cl">AIR QUALITY</div><div class="cv" style="font-size:12px;color:var(--muted)">loading…</div></div>
+    <div class="cond"><div class="cl">MOON</div><div class="cv">${moon.emoji} ${moon.illum}%</div><div class="cs">${moon.name}</div></div>
+    <div class="cond"><div class="cl">SUNRISE</div><div class="cv">${fmtT(sr)}</div></div>
+    <div class="cond"><div class="cl">SUNSET</div><div class="cv">${fmtT(ss)}</div></div>
+  </div>`;
+}
+
+/* US EPA AQI bands */
+function aqiBand(v){
+  if(v==null) return {c:"#5f7a74",t:"—"};
+  if(v<=50)  return {c:"#39c2a5",t:"Good"};
+  if(v<=100) return {c:"#ffe066",t:"Moderate"};
+  if(v<=150) return {c:"#ffb14d",t:"Unhealthy (sensitive)"};
+  if(v<=200) return {c:"#ff5d5d",t:"Unhealthy"};
+  if(v<=300) return {c:"#c026d3",t:"Very unhealthy"};
+  return {c:"#8b1a1a",t:"Hazardous"};
+}
+// AQI loads in parallel with the forecast; applyAqi() reconciles whichever
+// of {data ready, box built} finishes last, so there's no render race.
+let fcReqId=0, fcAqiData=null;
+async function loadAirQuality(lat,lon,reqId){
+  try{
+    const url=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`+
+      `&current=us_aqi,pm2_5&timezone=auto`;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    fcAqiData={reqId, cur:(await res.json()).current||{}};
+  }catch(err){ fcAqiData={reqId, err:true}; console.warn("Air quality:",err); }
+  applyAqi(reqId);
+}
+function applyAqi(reqId){
+  if(reqId!==fcReqId || !fcAqiData || fcAqiData.reqId!==reqId) return;
+  const box=document.getElementById("condAqi"); if(!box) return;
+  if(fcAqiData.err){ box.innerHTML=`<div class="cl">AIR QUALITY</div><div class="cv" style="font-size:11px;color:var(--muted)">unavailable</div>`; return; }
+  const cur=fcAqiData.cur, b=aqiBand(cur.us_aqi);
+  box.innerHTML=`<div class="cl">AIR QUALITY</div>`+
+    `<div class="cv"><span class="aqi-dot" style="background:${b.c}"></span>${cur.us_aqi!=null?Math.round(cur.us_aqi):"—"} <span style="font-size:10px;color:var(--muted)">US AQI</span></div>`+
+    `<div class="cs" style="color:${b.c}">${b.t}${cur.pm2_5!=null?" · PM2.5 "+Math.round(cur.pm2_5):""}</div>`;
+}
+
+/* moon phase from a reference new moon; synodic month = 29.53059 days */
+function moonPhase(date){
+  const syn=29.530588853, ref=Date.UTC(2000,0,6,18,14); // known new moon
+  let age=(((date.getTime()-ref)/86400000)%syn+syn)%syn;
+  const illum=Math.round((1-Math.cos(2*Math.PI*age/syn))/2*100);
+  const names=[["🌑","New moon"],["🌒","Waxing crescent"],["🌓","First quarter"],["🌔","Waxing gibbous"],
+    ["🌕","Full moon"],["🌖","Waning gibbous"],["🌗","Last quarter"],["🌘","Waning crescent"]];
+  const idx=Math.floor((age/syn)*8+0.5)%8;
+  return {emoji:names[idx][0], name:names[idx][1], illum};
 }
 
 function drawSpark(temps){
@@ -1163,6 +1244,25 @@ function chooseFavorite(f){
   favResults.innerHTML = "";
   loadFavorite();
 }
+
+/* ---------- use my location (browser geolocation) ---------- */
+document.getElementById("geoBtn").addEventListener("click",()=>{
+  const btn=document.getElementById("geoBtn");
+  if(!navigator.geolocation){ btn.textContent="⚠ GEOLOCATION UNSUPPORTED"; return; }
+  btn.classList.add("busy"); btn.textContent="📍 LOCATING…";
+  navigator.geolocation.getCurrentPosition(pos=>{
+    btn.classList.remove("busy"); btn.textContent="📍 USE MY LOCATION";
+    const lat=pos.coords.latitude, lon=pos.coords.longitude;
+    chooseFavorite({name:"My Location", region:"tracked from this device", lat, lon});
+    map.flyTo([lat,lon], Math.max(map.getZoom(),9), {duration:.8});
+    loadPointForecast(lat,lon);
+    setSidebar(false);
+  },err=>{
+    btn.classList.remove("busy");
+    btn.textContent = err.code===1 ? "⚠ LOCATION PERMISSION DENIED" : "⚠ LOCATION UNAVAILABLE";
+    setTimeout(()=>{ btn.textContent="📍 USE MY LOCATION"; },3500);
+  },{enableHighAccuracy:false, timeout:10000, maximumAge:300000});
+});
 
 async function loadFavorite(){
   const f = getFavorite();
