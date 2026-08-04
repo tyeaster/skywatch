@@ -1238,24 +1238,40 @@ function drawSpark(temps){
   ctx.fillText("+48H",W-44,H-6);
 }
 
-/* ---------- favorite location ---------- */
+/* ---------- favorite locations (multiple) ---------- */
 /* All free + key-less: Open-Meteo geocoding & forecast, NWS point alerts (US). */
-const FAV_KEY    = "skywatch.fav";
+const FAV_KEY    = "skywatch.favs";      // array of {id,name,region,lat,lon}
+const FAV_OLD    = "skywatch.fav";       // legacy single-favorite key (migrated)
+const FAV_MAX    = 6;
 const favInput   = document.getElementById("favInput");
 const favForm    = document.getElementById("favForm");
 const favResults = document.getElementById("favResults");
 const favCard    = document.getElementById("favCard");
-let favMarker = null;
+let favMarkers = [];
 
-function getFavorite(){
-  try{ return JSON.parse(localStorage.getItem(FAV_KEY)||"null"); }catch(_){ return null; }
+function favId(f){ return f.lat.toFixed(3)+"_"+f.lon.toFixed(3); }
+function getFavorites(){
+  try{
+    let arr=JSON.parse(localStorage.getItem(FAV_KEY)||"null");
+    if(!Array.isArray(arr)){                                  // migrate legacy single favorite
+      const old=JSON.parse(localStorage.getItem(FAV_OLD)||"null");
+      arr = old ? [old] : [];
+      if(old){ localStorage.setItem(FAV_KEY,JSON.stringify(arr)); localStorage.removeItem(FAV_OLD); }
+    }
+    return arr.filter(f=>f&&f.lat!=null&&f.lon!=null).map(f=>({id:f.id||favId(f),name:f.name,region:f.region||"",lat:f.lat,lon:f.lon}));
+  }catch(_){ return []; }
 }
-function setFavorite(f){ try{ localStorage.setItem(FAV_KEY,JSON.stringify(f)); }catch(_){} }
-function clearFavorite(){
-  try{ localStorage.removeItem(FAV_KEY); }catch(_){}
-  if(favMarker){ map.removeLayer(favMarker); favMarker = null; }
-  favCard.innerHTML = "";
+function saveFavorites(arr){ try{ localStorage.setItem(FAV_KEY,JSON.stringify(arr)); }catch(_){} }
+function addFavorite(f){
+  const arr=getFavorites(), id=favId(f);
+  if(!arr.some(x=>x.id===id)){                                // dedup by ~100 m
+    arr.unshift({id, name:f.name, region:f.region||"", lat:f.lat, lon:f.lon});
+    if(arr.length>FAV_MAX) arr.length=FAV_MAX;
+    saveFavorites(arr);
+  }
+  loadFavorites();
 }
+function removeFavorite(id){ saveFavorites(getFavorites().filter(f=>f.id!==id)); loadFavorites(); }
 
 favForm.addEventListener("submit",e=>{ e.preventDefault(); geocode(favInput.value.trim()); });
 document.addEventListener("click",e=>{
@@ -1293,11 +1309,10 @@ async function geocode(q){
 }
 
 function chooseFavorite(f){
-  setFavorite(f);
   favInput.value = "";
   favResults.classList.remove("show");
   favResults.innerHTML = "";
-  loadFavorite();
+  addFavorite(f);
 }
 
 /* ---------- use my location (browser geolocation) ---------- */
@@ -1319,21 +1334,25 @@ document.getElementById("geoBtn").addEventListener("click",()=>{
   },{enableHighAccuracy:false, timeout:10000, maximumAge:300000});
 });
 
-async function loadFavorite(){
-  const f = getFavorite();
-  if(!f){ favCard.innerHTML = ""; if(favMarker){ map.removeLayer(favMarker); favMarker = null; } return; }
-
-  if(favMarker) map.removeLayer(favMarker);
-  favMarker = L.marker([f.lat,f.lon],{
-    icon:L.divIcon({className:"",html:'<div class="fav-pin" style="color:#39c2a5">★</div>',iconSize:null,iconAnchor:[8,10]}),
-    title:f.name, keyboard:false, zIndexOffset:1000
-  }).addTo(map);
-
-  favCard.innerHTML = `<div class="fav-card"><div class="fav-place">${f.name}<small>${f.region||""}</small></div>`+
-    `<div class="fav-note">LOADING…</div></div>`;
-
-  const [wx, alerts] = await Promise.all([favWeather(f), favAlerts(f)]);
-  renderFavCard(f, wx, alerts);
+function loadFavorites(){
+  const favs=getFavorites();
+  // markers
+  favMarkers.forEach(m=>map.removeLayer(m)); favMarkers=[];
+  favs.forEach(f=>{
+    favMarkers.push(L.marker([f.lat,f.lon],{
+      icon:L.divIcon({className:"",html:'<div class="fav-pin" style="color:#39c2a5">★</div>',iconSize:null,iconAnchor:[8,10]}),
+      title:f.name, keyboard:false, zIndexOffset:1000
+    }).addTo(map));
+  });
+  if(!favs.length){ favCard.innerHTML=""; return; }
+  // skeleton cards, then fill each independently
+  favCard.innerHTML=favs.map(f=>
+    `<div class="fav-card" data-id="${f.id}"><div class="fav-place">${f.name}<small>${f.region||""}</small></div>`+
+    `<div class="fav-note">LOADING…</div></div>`).join("");
+  favs.forEach(async f=>{
+    const [wx, alerts]=await Promise.all([favWeather(f), favAlerts(f)]);
+    fillFavCard(f, wx, alerts);
+  });
 }
 
 async function favWeather(f){
@@ -1360,7 +1379,10 @@ async function favAlerts(f){
   }catch(err){ console.warn("Favorite alerts:",err); return {coverage:true, list:null}; }
 }
 
-function renderFavCard(f, wx, alerts){
+function fillFavCard(f, wx, alerts){
+  let card=null;
+  favCard.querySelectorAll(".fav-card").forEach(el=>{ if(el.dataset.id===f.id) card=el; });
+  if(!card) return;
   const c  = wx && wx.current;
   const dl = wx && wx.daily;
   const alerting = !!(alerts && alerts.list && alerts.list.length);
@@ -1393,18 +1415,17 @@ function renderFavCard(f, wx, alerts){
     alertHtml = '<div class="fav-noalert" style="color:var(--muted)">ALERTS UNAVAILABLE</div>';
   }
 
-  favCard.innerHTML =
-    `<div class="fav-card${alerting?" alerting":""}">`+
+  card.classList.toggle("alerting", alerting);
+  card.innerHTML =
     `<div class="fav-place">${f.name}<small>${f.region||""}</small></div>`+
     cur + alertHtml +
-    `<div class="fav-actions"><button class="view">VIEW ON MAP</button><button class="rm">REMOVE</button></div>`+
-    `</div>`;
-  favCard.querySelector(".view").addEventListener("click",()=>{
+    `<div class="fav-actions"><button class="view">VIEW ON MAP</button><button class="rm">REMOVE</button></div>`;
+  card.querySelector(".view").addEventListener("click",()=>{
     map.flyTo([f.lat,f.lon], Math.max(map.getZoom(),8), {duration:.8});
     loadPointForecast(f.lat, f.lon);
     setSidebar(false);
   });
-  favCard.querySelector(".rm").addEventListener("click",clearFavorite);
+  card.querySelector(".rm").addEventListener("click",()=>removeFavorite(f.id));
 }
 
 /* ---------- tropics + fronts ---------- */
@@ -2071,7 +2092,7 @@ function refreshAll(){
   loadRadar();
   loadAlerts();
   loadStations();
-  loadFavorite();
+  loadFavorites();
   if(document.getElementById("page-tropics").classList.contains("active")) loadTropics(true);
   if(document.getElementById("page-severe").classList.contains("active")) loadSevere(true);
   nextRefreshAt = Date.now()+REFRESH_MS;
