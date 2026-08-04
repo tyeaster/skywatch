@@ -14,7 +14,8 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
   - **Forecast model field** — a real numerical-weather-model layer (Open-Meteo's GFS / ECMWF-IFS / ICON blend) sampled on a grid across the current view and painted as a smooth colored field, with a variable picker, a forecast-time slider out to +72 h, and a legend. This is genuine model output, distinct from the statistical baseline on the storm pages. Variables:
     - Wind speed, wind gusts, precipitation, CAPE (storm energy), sea-level pressure, temperature
     - **Deep-layer wind shear (200–850 hPa)** — the classic green-to-red tropical shear map, computed as the vector difference between upper- and lower-level model winds (green = low shear, favorable for tropical storms; red = high shear, hostile)
-  - Click anywhere for a point forecast: current conditions, 48-hour temperature sparkline (canvas), and 7-day outlook
+  - Click anywhere (or **"Use my location"**) for a point forecast: current conditions, **air quality (US AQI + PM2.5)**, **sunrise/sunset and moon phase**, a 48-hour temperature sparkline (canvas), and a 7-day outlook
+  - **Use my location** — one tap centers the map on where you are and sets it as your tracked favorite (browser geolocation)
   - **Favorite location** — search any place by name and pin it. A sidebar card tracks its current conditions, today's hi/lo, and any active NWS warnings/advisories (color-coded, with a red glow when something is active). Saved in your browser (localStorage) so it persists across visits; "View on map" flies there and opens the full forecast.
 - **Tropics + Fronts** — active tropical cyclone cards from NHC, plus live NHC 7-day tropical outlooks and WPC surface-analysis / forecast-fronts charts. **Tap any storm** for a full research briefing subpage (deep-linkable via `#storm/<id>`):
   - Current intensity in kt / mph / km/h, min central pressure, and Saffir-Simpson category
