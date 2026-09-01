@@ -23,7 +23,8 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
   - Current intensity in kt / mph / km/h, min central pressure, and Saffir-Simpson category
   - A category ladder showing exactly what wind speed it must reach for the next category
   - **Intensity forecast** — a damped-persistence wind forecast (+24/+48/+72 h) with an uncertainty band sized from NHC average intensity errors, plotted forward on a wind + pressure history chart, with an intensification rate and rapid-intensification flag
-  - **Track forecast** — a curved persistence + observed-turn-rate model (the CLIPER family of baseline the NHC uses as a skill benchmark) drawn with an uncertainty cone from NHC average track errors, alongside the official NHC forecast cone image
+  - **Track forecast** — a curved persistence + observed-turn-rate model (the CLIPER family of baseline the NHC uses as a skill benchmark) drawn with an uncertainty cone from NHC average track errors
+  - **Official NHC forecast track & cone** — parsed directly from the NHC forecast advisory and drawn as the real forecast positions + 5-day cone of uncertainty (falls back to the official cone graphic/link if the advisory can't be read)
   - Position, motion, and nearest coastline; plain-language impact guidance; auto-collected links to the authoritative NHC advisories and graphics
   - A **Model & Methodology** card documenting exactly how the forecasts are made and their limits
 

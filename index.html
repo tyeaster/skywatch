@@ -1905,8 +1905,9 @@ function openStorm(id){
     ${projHtml}
     <canvas id="stormTrack" class="sd-canvas" width="860" height="360"></canvas>
 
-    <div class="sd-sec">OFFICIAL FORECAST CONE</div>
-    <div class="sd-note">OFFICIAL — NHC 5-day cone. If it doesn't load, use the link.</div>
+    <div class="sd-sec">OFFICIAL FORECAST TRACK &amp; CONE</div>
+    <div class="sd-note"><b>OFFICIAL (NHC)</b> — drawn from the National Hurricane Center forecast advisory: forecast positions + the standard 5-day cone of uncertainty. If the advisory can't be read, the official cone graphic and link are shown instead.</div>
+    <div id="officialWrap"><canvas id="officialTrack" class="sd-canvas" width="860" height="380"></canvas></div>
     <div class="cone-wrap" id="coneWrap"></div>
 
     <div class="sd-sec">WHAT TO EXPECT</div>
@@ -1932,6 +1933,7 @@ function openStorm(id){
 
   drawStormHistory(hist, iFcst);
   drawStormTrack(s, track);
+  mountOfficialTrack(s);
   mountCone(s);
 }
 
@@ -2148,6 +2150,85 @@ function drawStormTrack(s, track){
   // legend
   ctx.fillStyle="#5f7a74"; ctx.font="9px ui-monospace,Menlo,monospace";
   ctx.fillText("○ cone = NHC avg track error  ·  - - SKYWATCH model track  ·  ● nearest coast",pad,H-8);
+}
+
+/* ---------- official NHC forecast track & cone (parsed from the advisory) ---------- */
+function dayHHMMtoMin(day,hhmm){ return day*1440 + (+hhmm.slice(0,2))*60 + (+hhmm.slice(2)); }
+function coneRadiusNm(h){
+  const keys=Object.keys(CONE_R).map(Number).sort((a,b)=>a-b);
+  if(h<=keys[0]) return CONE_R[keys[0]]*h/keys[0];
+  if(h>=keys[keys.length-1]) return CONE_R[keys[keys.length-1]];
+  for(let i=1;i<keys.length;i++){ if(h<=keys[i]){ const a=keys[i-1],b=keys[i]; return CONE_R[a]+(CONE_R[b]-CONE_R[a])*((h-a)/(b-a)); } }
+  return CONE_R[keys[keys.length-1]];
+}
+// parse NHC forecast/advisory (TCM) text into {init, points[{h,lat,lon,wind}]}
+function parseForecastAdvisory(raw){
+  const t=raw.replace(/<[^>]+>/g," ");
+  const initM=t.match(/CENTER LOCATED NEAR\s+(\d+\.\d)([NS])\s+(\d+\.\d)([EW])\s+AT\s+(\d{2})\/(\d{4})Z/i);
+  const pts=[];
+  const re=/FORECAST VALID\s+(\d{2})\/(\d{4})Z\s+(\d+\.\d)([NS])\s+(\d+\.\d)([EW])[\s\S]*?MAX WIND\s+(\d+)\s*KT/gi;
+  let m;
+  while((m=re.exec(t))){
+    pts.push({day:+m[1],hhmm:m[2],
+      lat:parseFloat(m[3])*(m[4].toUpperCase()==="S"?-1:1),
+      lon:parseFloat(m[5])*(m[6].toUpperCase()==="W"?-1:1), wind:+m[7]});
+  }
+  let init=initM?{lat:parseFloat(initM[1])*(initM[2].toUpperCase()==="S"?-1:1),
+    lon:parseFloat(initM[3])*(initM[4].toUpperCase()==="W"?-1:1),day:+initM[5],hhmm:initM[6]}:pts[0];
+  if(!init||!pts.length) return null;
+  const base=dayHHMMtoMin(init.day,init.hhmm);
+  const points=pts.map(p=>{ let mins=dayHHMMtoMin(p.day,p.hhmm)-base; if(mins<0) mins+=31*1440;
+    return {h:Math.round(mins/60),lat:p.lat,lon:p.lon,wind:p.wind}; });
+  return {init:{lat:init.lat,lon:init.lon}, points};
+}
+async function loadOfficialForecast(s){
+  const advUrl=s.forecastAdvisory && s.forecastAdvisory.url;
+  if(!advUrl) return null;
+  const sources=[advUrl, "https://api.allorigins.win/raw?url="+encodeURIComponent(advUrl)];
+  for(const src of sources){
+    try{
+      const res=await fetch(src,{signal:AbortSignal.timeout(12000)});
+      if(!res.ok) continue;
+      const data=parseForecastAdvisory(await res.text());
+      if(data && data.points.length) return data;
+    }catch(_){ /* try next */ }
+  }
+  return null;
+}
+async function mountOfficialTrack(s){
+  const wrap=document.getElementById("officialWrap"); if(!wrap) return;
+  wrap.hidden=true;                                   // hidden until we have real data
+  const data=await loadOfficialForecast(s);
+  if(!data || !data.points.length) return;            // fall back to the cone image below
+  wrap.hidden=false;
+  drawOfficialCone(s, data);
+}
+function drawOfficialCone(s, data){
+  const cv=document.getElementById("officialTrack"); if(!cv) return;
+  const ctx=cv.getContext("2d"), W=cv.width, H=cv.height; ctx.clearRect(0,0,W,H);
+  const pts=[{h:0,lat:data.init.lat,lon:data.init.lon,wind:parseInt(s.intensity,10)||data.points[0].wind}].concat(data.points);
+  const rMax=coneRadiusNm(pts[pts.length-1].h)/60;
+  const laMin=Math.min(...pts.map(p=>p.lat))-rMax, laMax=Math.max(...pts.map(p=>p.lat))+rMax;
+  const loMin=Math.min(...pts.map(p=>p.lon))-rMax, loMax=Math.max(...pts.map(p=>p.lon))+rMax;
+  const pad=30, midLat=(laMin+laMax)/2;
+  const sc=Math.min((W-2*pad)/((loMax-loMin)||1),(H-2*pad)/((laMax-laMin)||1));
+  const X=lo=>pad+(lo-loMin)*sc+(W-2*pad-((loMax-loMin)*sc))/2, Y=la=>pad+(laMax-la)*sc;
+  const nmToPx=nm=>nm/60*sc*Math.cos(midLat*Math.PI/180);
+  // cone: union of circles along the forecast track (official avg track error)
+  ctx.fillStyle="rgba(57,194,165,.13)";
+  pts.forEach(p=>{ if(p.h<=0) return; const rpx=Math.max(nmToPx(coneRadiusNm(p.h)),2);
+    ctx.beginPath(); ctx.arc(X(p.lon),Y(p.lat),rpx,0,7); ctx.fill(); });
+  // official track line
+  ctx.beginPath(); pts.forEach((p,i)=>{ i?ctx.lineTo(X(p.lon),Y(p.lat)):ctx.moveTo(X(p.lon),Y(p.lat)); });
+  ctx.strokeStyle="#39c2a5"; ctx.lineWidth=2.5; ctx.stroke();
+  // forecast dots, colored by forecast category, with hour + category letter
+  pts.forEach(p=>{ const cat=catFromWind(p.wind);
+    ctx.fillStyle=cat.color; ctx.beginPath(); ctx.arc(X(p.lon),Y(p.lat),p.h===0?6:4,0,7); ctx.fill();
+    ctx.strokeStyle="#04110e"; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle="#cfe7e2"; ctx.font="9px ui-monospace,Menlo,monospace";
+    ctx.fillText(p.h===0?"NOW":"+"+p.h+"h", X(p.lon)+7, Y(p.lat)+3); });
+  ctx.fillStyle="#5f7a74"; ctx.font="9px ui-monospace,Menlo,monospace";
+  ctx.fillText("OFFICIAL NHC FORECAST TRACK  ·  ○ 5-day cone of uncertainty  ·  dot color = forecast category",pad,H-8);
 }
 
 /* ---------- refresh cycle ---------- */
