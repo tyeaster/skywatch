@@ -10,6 +10,7 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
   - Animated NEXRAD radar loop (play/pause, scrubbable timeline, frame timestamps)
   - IR satellite cloud overlay
   - Live NWS alert polygons, color-coded by severity (warning / watch / advisory), click for details
+  - **Severe Risk** overlay — SPC Day 1 categorical outlook polygons shaded on the map (Marginal → High), so severe threat sits alongside radar and your location
   - ~50 city stations with switchable TEMP / WIND readouts
   - **Forecast model field** — a real numerical-weather-model layer (Open-Meteo's GFS / ECMWF-IFS / ICON blend) sampled on a grid across the current view and painted as a smooth colored field, with a variable picker, a forecast-time slider out to +72 h, and a legend. This is genuine model output, distinct from the statistical baseline on the storm pages. Variables:
     - Wind speed, wind gusts, precipitation, CAPE (storm energy), sea-level pressure, temperature
