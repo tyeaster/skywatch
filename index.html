@@ -6,6 +6,13 @@
 <title>SKYWATCH_ — Personal WX Ops</title>
 <meta name="description" content="SKYWATCH: a personal weather operations dashboard. Animated NEXRAD radar, IR satellite, NWS alerts, station obs, point forecasts, tropics and fronts. All free public APIs, no keys.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>&#x1F4E1;</text></svg>">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070b0a">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SKYWATCH">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{
@@ -92,7 +99,10 @@ aside{
 }
 #fcstVar:focus{outline:none;border-color:var(--accent-dim)}
 .fcst-time{display:flex;flex-direction:column;gap:5px}
-#fcstHour{width:100%;accent-color:var(--accent);height:4px}
+.fcst-srow{display:flex;align-items:center;gap:7px}
+#fcstPlay{width:26px;height:26px;flex-shrink:0;border:1px solid var(--accent-dim);border-radius:3px;color:var(--accent);font-size:11px}
+#fcstPlay:hover{background:rgba(57,194,165,.1)}
+#fcstHour{flex:1;min-width:0;accent-color:var(--accent);height:4px}
 .fcst-valid{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--muted)}
 .fcst-valid b{color:var(--ink)}
 .fcst-legend{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;color:var(--muted)}
@@ -462,7 +472,10 @@ footer .dot{color:var(--accent-dim)}
             <option value="temperature_2m">Temperature</option>
           </select>
           <div class="fcst-time">
-            <input type="range" id="fcstHour" min="0" max="72" step="1" value="0">
+            <div class="fcst-srow">
+              <button type="button" id="fcstPlay" title="Animate forecast">▶</button>
+              <input type="range" id="fcstHour" min="0" max="72" step="1" value="0">
+            </div>
             <div class="fcst-valid">VALID <b id="fcstValid">—</b> · <b id="fcstLead">NOW</b></div>
           </div>
           <div class="fcst-legend"><span id="fcstLegMin">—</span><div class="fcst-bar" id="fcstBar"></div><span id="fcstLegMax">—</span></div>
@@ -965,14 +978,30 @@ function updateFcstLegend(){
   document.getElementById("fcstLegMax").textContent=hi+" "+meta.unit;
 }
 
+// animate the forecast field through its hours (like the radar loop)
+let fcstPlayTimer=null;
+function fcstSetPlaying(on){
+  const btn=document.getElementById("fcstPlay");
+  clearInterval(fcstPlayTimer); fcstPlayTimer=null;
+  if(on && fcstState.on && fcstState.grid){
+    btn.textContent="❚❚";
+    fcstPlayTimer=setInterval(()=>{
+      const hEl=document.getElementById("fcstHour");
+      let h=+hEl.value+3; if(h>+hEl.max) h=0;      // 3-hour steps, loop
+      hEl.value=h; fcstState.hour=h; renderForecastField();
+    },600);
+  }else btn.textContent="▶";
+}
+document.getElementById("fcstPlay").addEventListener("click",()=>fcstSetPlaying(!fcstPlayTimer));
+
 bindToggle("tgFcst","fcstOn",()=>{
   fcstState.on=toggles.fcstOn;
   document.getElementById("fcstControls").hidden=!fcstState.on;
   if(fcstState.on){ updateFcstLegend(); loadForecastField(); }
-  else if(fcstState.layer){ map.removeLayer(fcstState.layer); fcstState.layer=null; }
+  else { fcstSetPlaying(false); if(fcstState.layer){ map.removeLayer(fcstState.layer); fcstState.layer=null; } }
 });
 document.getElementById("fcstVar").addEventListener("change",e=>{ fcstState.variable=e.target.value; updateFcstLegend(); loadForecastField(); });
-document.getElementById("fcstHour").addEventListener("input",e=>{ fcstState.hour=+e.target.value; renderForecastField(); });
+document.getElementById("fcstHour").addEventListener("input",e=>{ fcstSetPlaying(false); fcstState.hour=+e.target.value; renderForecastField(); });
 let fcstMoveTimer=null;
 map.on("moveend",()=>{ if(!fcstState.on) return; clearTimeout(fcstMoveTimer); fcstMoveTimer=setTimeout(loadForecastField,700); });
 
@@ -2106,6 +2135,11 @@ setInterval(()=>{
 refreshAll();
 setPlaying(false);
 if(location.hash.startsWith("#storm/")) routeStorm();   // honor a deep-link on load
+
+/* register the service worker so SKYWATCH installs & works offline */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
 </script>
 </body>
 </html>

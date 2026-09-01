@@ -28,6 +28,8 @@ A personal weather operations dashboard in a single HTML file. Dark "radar room"
 
   **On the forecast model:** SKYWATCH's own track/intensity forecasts are a transparent *statistical baseline* (persistence + climatology), computed in-browser from the current snapshot plus locally-recorded history. It does not ingest numerical weather models, satellite, ocean heat, or wind shear, and it is expected to be beaten by the NHC's model consensus — every value is labeled *official NHC* vs. *SKYWATCH-computed*, and the app is explicit that the NHC forecast is authoritative for any safety decision.
 - **Learn** — field notes on reading radar reflectivity, watches vs. warnings, tropical classifications, surface charts, and IR imagery
+- **Installable (PWA)** — "Add to Home Screen" to run SKYWATCH fullscreen like a native app; a service worker caches the app shell so it loads instantly and shows its last state offline (live data always fetches fresh)
+- The **Forecast Model** layer has a play button to animate the field through its forecast hours, like the radar loop
 - Auto-refreshes all data every 5 minutes
 
 ## Data sources (all free, no keys)
