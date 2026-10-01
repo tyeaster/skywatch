@@ -324,6 +324,46 @@ aside{
 .cone-wrap img{width:100%;max-width:640px;height:auto;display:block;border:1px solid var(--line);border-radius:4px;background:#0a0f0e}
 .cone-fallback{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;background:var(--panel);border:1px dashed var(--line);border-radius:4px;padding:12px 14px}
 .cone-fallback a{color:var(--accent)}
+
+/* ---------- hurricane tracker ---------- */
+.hur-map{height:460px;border:1px solid var(--line);border-radius:4px;background:#0a0f0e;margin-top:4px}
+@media(max-width:760px){ .hur-map{height:330px} }
+.mt-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.mt{
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;padding:6px 10px;
+  border:1px solid var(--line);border-radius:3px;color:var(--muted);background:var(--panel-2);
+}
+.mt.on{color:var(--accent);border-color:var(--accent-dim);background:rgba(57,194,165,.08)}
+.model-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0}
+.model-legend span{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--muted);display:flex;align-items:center}
+.model-legend i{width:16px;height:3px;border-radius:2px;display:inline-block;margin-right:6px}
+
+.lf-head{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;margin:10px 0}
+.lf-main{
+  flex:1 1 260px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warn);
+  border-radius:4px;padding:12px 14px;
+}
+.lf-main .lf-lab{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--muted);margin-bottom:6px}
+.lf-main .lf-cat{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1.1}
+.lf-main .lf-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:5px;line-height:1.6}
+.lf-bars{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+.lf-bar{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px}
+.lf-bar .bl{width:112px;flex-shrink:0;color:var(--muted)}
+.lf-bar .bt{flex:1;height:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.lf-bar .bf{display:block;height:100%;min-width:2px}
+.lf-bar .bn{width:62px;text-align:right;color:var(--ink)}
+
+.gtable-wrap{overflow-x:auto;margin:10px 0}
+table.gtable{border-collapse:collapse;font-family:var(--mono);font-size:10px;width:100%;min-width:560px}
+table.gtable th,table.gtable td{border:1px solid var(--line);padding:4px 7px;text-align:center;white-space:nowrap}
+table.gtable th{color:var(--muted);font-size:9px;letter-spacing:.1em;background:var(--panel-2)}
+table.gtable td.mdl{text-align:left;color:var(--ink)}
+table.gtable tr.off td{background:rgba(255,255,255,.05);font-weight:700}
+.adeck-status{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--muted);line-height:1.7;
+  background:var(--panel);border:1px dashed var(--line);border-radius:4px;padding:10px 12px;margin:8px 0}
+.adeck-status b{color:var(--accent)}
+.adeck-status.warn{border-color:var(--warn)}
+.adeck-status.warn b{color:var(--warn)}
 #stormMsg{
   font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8;
   background:var(--panel);border:1px dashed var(--line);border-radius:4px;padding:14px 16px;
@@ -411,7 +451,8 @@ footer .dot{color:var(--accent-dim)}
   <nav>
     <button data-page="map" class="active">MAP</button>
     <button data-page="severe">SEVERE</button>
-    <button data-page="tropics">TROPICS + FRONTS</button>
+    <button data-page="hurricanes">HURRICANES</button>
+    <button data-page="fronts">FRONTS</button>
     <button data-page="learn">LEARN</button>
   </nav>
   <div id="clock"><span class="local">--:--:--</span><br><span class="utc">--:--:--Z</span></div>
@@ -576,15 +617,15 @@ footer .dot{color:var(--accent-dim)}
   </div>
 
   <!-- ============ TROPICS + FRONTS PAGE ============ -->
-  <div class="page" id="page-tropics">
-    <div class="scroll-page" id="tropicsList">
+  <div class="page" id="page-hurricanes">
+    <div class="scroll-page" id="hurList">
       <h2>ACTIVE TROPICAL CYCLONES</h2>
-      <div class="sub">NHC CURRENTSTORMS.JSON · ATLANTIC / E-PAC / C-PAC · TAP A STORM FOR THE FULL BRIEFING</div>
+      <div class="sub">NHC CURRENTSTORMS.JSON · ATLANTIC / E-PAC / C-PAC · TAP A STORM FOR THE FULL TRACKER</div>
       <div class="storm-grid" id="stormGrid"></div>
       <div id="stormMsg" hidden></div>
 
-      <h2>OUTLOOKS + SURFACE CHARTS</h2>
-      <div class="sub">NHC TROPICAL WEATHER OUTLOOK · WPC SURFACE ANALYSIS + FRONTS</div>
+      <h2>BASIN OUTLOOK</h2>
+      <div class="sub">NHC 7-DAY TROPICAL WEATHER OUTLOOK — WHERE NEW SYSTEMS MAY FORM</div>
       <div class="chart-grid">
         <div class="chart">
           <h5>ATLANTIC — 7-DAY TROPICAL OUTLOOK</h5>
@@ -596,6 +637,18 @@ footer .dot{color:var(--accent-dim)}
           <img data-src="https://www.nhc.noaa.gov/xgtwo/two_pac_7d0.png" alt="NHC Eastern Pacific 7-day tropical weather outlook" loading="lazy">
           <div class="cap">SOURCE NHC.NOAA.GOV</div>
         </div>
+      </div>
+    </div>
+
+    <div class="scroll-page" id="stormDetail" hidden></div>
+  </div>
+
+  <!-- ============ FRONTS PAGE ============ -->
+  <div class="page" id="page-fronts">
+    <div class="scroll-page">
+      <h2>SURFACE ANALYSIS + FRONTS</h2>
+      <div class="sub">NOAA WEATHER PREDICTION CENTER · HIGHS, LOWS AND FRONTAL BOUNDARIES</div>
+      <div class="chart-grid">
         <div class="chart">
           <h5>US SURFACE ANALYSIS — FRONTS + PRESSURE</h5>
           <img data-src="https://www.wpc.ncep.noaa.gov/sfc/namussfcwbg.gif" alt="WPC US surface analysis with fronts and pressure centers" loading="lazy">
@@ -607,9 +660,8 @@ footer .dot{color:var(--accent-dim)}
           <div class="cap">SOURCE WPC.NCEP.NOAA.GOV</div>
         </div>
       </div>
+      <div class="sev-note">A <b>front</b> is the boundary between two air masses of different temperature — the main reason day-to-day weather changes. Blue triangles mark cold fronts, red half-circles warm fronts, alternating symbols a stationary front, and purple an occlusion. <b>L</b> marks low pressure (clouds, rain, wind); <b>H</b> marks high pressure (settled, clearer). See the Learn page for more.</div>
     </div>
-
-    <div class="scroll-page" id="stormDetail" hidden></div>
   </div>
 
   <!-- ============ LEARN PAGE ============ -->
@@ -730,7 +782,8 @@ document.querySelectorAll("nav button").forEach(btn=>{
     setSidebar(false);                                   // close the mobile panel on page change
     updateSideBtn(btn.dataset.page);                     // the ☰ LAYERS button only applies to the map
     if(btn.dataset.page==="map") map.invalidateSize();
-    if(btn.dataset.page==="tropics"){ loadTropics(); routeStorm(); }
+    if(btn.dataset.page==="hurricanes"){ loadHurricanes(); routeStorm(); }
+    if(btn.dataset.page==="fronts") loadFronts();
     if(btn.dataset.page==="severe") loadSevere();
   });
 });
@@ -741,12 +794,12 @@ updateSideBtn("map");
 
 /* ---------- storm subpage routing (#storm/<id>) ---------- */
 function routeStorm(){
-  const onTropics = document.getElementById("page-tropics").classList.contains("active");
+  const onTropics = document.getElementById("page-hurricanes").classList.contains("active");
   if(location.hash.startsWith("#storm/")){
     if(!onTropics){  // deep-link straight to a storm: switch to the tropics page first
-      document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page==="tropics"));
-      document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page-tropics"));
-      loadTropics();
+      document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page==="hurricanes"));
+      document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id==="page-hurricanes"));
+      loadHurricanes();
     }
     openStorm(decodeURIComponent(location.hash.slice(7)));
   }else{
@@ -1503,6 +1556,7 @@ const NHC_SOURCES = [
   "https://api.allorigins.win/raw?url="+encodeURIComponent(NHC_URL)
 ];
 let tropicsLoadedAt = 0;
+let frontsLoadedAt = 0;
 let stormData = [];
 
 /* robust loader for government chart images: direct → wsrv.nl proxy → graceful
@@ -1524,6 +1578,12 @@ function mountChartImage(img){
   img.src=direct;
 }
 
+function loadFronts(force){
+  if(!force && Date.now()-frontsLoadedAt < REFRESH_MS) return;
+  frontsLoadedAt=Date.now();
+  document.querySelectorAll("#page-fronts img[data-src]").forEach(mountChartImage);
+}
+
 let severeLoadedAt=0;
 function loadSevere(force){
   if(!force && Date.now()-severeLoadedAt < REFRESH_MS) return;
@@ -1531,12 +1591,12 @@ function loadSevere(force){
   document.querySelectorAll("#page-severe img[data-src]").forEach(mountChartImage);
 }
 
-async function loadTropics(force){
+async function loadHurricanes(force){
   // lazy refresh: charts + storms at most once per refresh window
   if(!force && Date.now()-tropicsLoadedAt < REFRESH_MS) return;
   tropicsLoadedAt = Date.now();
 
-  document.querySelectorAll("#page-tropics img[data-src]").forEach(mountChartImage);
+  document.querySelectorAll("#page-hurricanes img[data-src]").forEach(mountChartImage);
 
   const grid = document.getElementById("stormGrid");
   const msg  = document.getElementById("stormMsg");
@@ -1766,13 +1826,14 @@ function forecastIntensity(s,hist,hours){
 
 /* ---------- storm detail subpage ---------- */
 function showStormList(){
+  if(hurMap){ try{ hurMap.remove(); }catch(_){ } hurMap=null; hurLayers=[]; }
   document.getElementById("stormDetail").hidden = true;
-  document.getElementById("tropicsList").hidden = false;
+  document.getElementById("hurList").hidden = false;
 }
 function openStorm(id){
   const s = stormData.find(x=>x.id===id);
   const detail = document.getElementById("stormDetail");
-  document.getElementById("tropicsList").hidden = true;
+  document.getElementById("hurList").hidden = true;
   detail.hidden = false;
   detail.scrollTop = 0;
   if(!s){
@@ -1863,6 +1924,7 @@ function openStorm(id){
   // official product links from the JSON (always correct URLs)
   const links = collectProductLinks(s);
 
+  if(hurMap){ try{ hurMap.remove(); }catch(_){ } hurMap=null; hurLayers=[]; }  // old map node is about to be replaced
   detail.innerHTML = `
     <button class="sd-back" onclick="location.hash=''">← BACK TO ALL STORMS</button>
     <div class="sd-head">
@@ -1910,6 +1972,31 @@ function openStorm(id){
     <div id="officialWrap"><canvas id="officialTrack" class="sd-canvas" width="860" height="380"></canvas></div>
     <div class="cone-wrap" id="coneWrap"></div>
 
+    <div class="sd-sec">MODEL GUIDANCE — SPAGHETTI TRACKS</div>
+    <div class="sd-note"><b>OFFICIAL MODEL GUIDANCE</b> — every forecast track in NHC's public ATCF guidance deck for this storm: the global models (GFS, ECMWF, UKMET, CMC, NAVGEM), the hurricane-specific models (HWRF, HMON, HAFS-A/B, COAMPS-TC), the consensus aids, the GEFS ensemble members, and NHC's own official track. <b>Tap any line</b> for that model's landfall intensity.</div>
+    <div class="mt-row" id="mtRow">
+      <button class="mt on" data-cls="official">NHC OFFICIAL</button>
+      <button class="mt on" data-cls="consensus">CONSENSUS AIDS</button>
+      <button class="mt on" data-cls="model">MODELS</button>
+      <button class="mt" data-cls="ensemble">GEFS ENSEMBLE</button>
+      <button class="mt on" data-cls="cone">CONE</button>
+    </div>
+    <div id="hurMap" class="hur-map"></div>
+    <div class="model-legend" id="modelLegend"></div>
+    <div class="adeck-status" id="adeckStatus">Loading model guidance…</div>
+
+    <div class="sd-sec">LANDFALL OUTLOOK — INTENSITY AT THE COAST</div>
+    <div class="sd-note"><b>SKYWATCH ENSEMBLE ANALYSIS</b> — each guidance track is walked hour by hour against a coastline; where it reaches the coast, that model's forecast wind at that moment gives a landfall category. The spread across all models is the honest answer to "what will it be when it hits." Every track counts here, including ensemble members hidden on the map above. Coastline is approximate (±~20 nm), intensity near land is where models struggle most, and this is <b>not</b> an official landfall forecast — NHC's advisories are.</div>
+    <div id="landfallPanel"></div>
+
+    <div class="sd-sec">INTENSITY GUIDANCE</div>
+    <div class="sd-note">Every model's forecast wind over time, with Saffir-Simpson bands. Wide spread = low confidence in intensity.</div>
+    <canvas id="intensitySpread" class="sd-canvas" width="860" height="300"></canvas>
+
+    <div class="sd-sec">GUIDANCE TABLE</div>
+    <div class="sd-note">Forecast max wind (kt) by lead time for the primary aids. Colored by the Saffir-Simpson category each model implies.</div>
+    <div class="gtable-wrap" id="guidanceTable"></div>
+
     <div class="sd-sec">WHAT TO EXPECT</div>
     <div class="sd-note">General category-based guidance — local impacts depend on the official forecast, your exact location, surge, and rainfall.</div>
     <ul class="impacts">${impacts}</ul>
@@ -1933,7 +2020,7 @@ function openStorm(id){
 
   drawStormHistory(hist, iFcst);
   drawStormTrack(s, track);
-  mountOfficialTrack(s);
+  mountOfficialTrack(s).then(()=>mountHurricaneTracker(s));
   mountCone(s);
 }
 
@@ -2195,11 +2282,14 @@ async function loadOfficialForecast(s){
   }
   return null;
 }
+let officialFcst=null;
 async function mountOfficialTrack(s){
   const wrap=document.getElementById("officialWrap"); if(!wrap) return;
   wrap.hidden=true;                                   // hidden until we have real data
+  officialFcst=null;
   const data=await loadOfficialForecast(s);
   if(!data || !data.points.length) return;            // fall back to the cone image below
+  officialFcst=data;
   wrap.hidden=false;
   drawOfficialCone(s, data);
 }
@@ -2231,6 +2321,509 @@ function drawOfficialCone(s, data){
   ctx.fillText("OFFICIAL NHC FORECAST TRACK  ·  ○ 5-day cone of uncertainty  ·  dot color = forecast category",pad,H-8);
 }
 
+/* ============================================================
+   HURRICANE TRACKER — model guidance (ATCF), spaghetti tracks,
+   and ensemble landfall analysis.
+
+   Source: NHC's public ATCF decks. The "a-deck" holds every model's
+   forecast track + intensity for a storm; the "b-deck" holds the
+   observed best track. These are the same files forecasters use.
+   ============================================================ */
+
+// Model metadata: id -> display name, colour, class, line weight
+const MODELS = {
+  OFCL:{n:"NHC Official",            c:"#ffffff", cls:"official",  w:4,   o:1},
+  OFCI:{n:"NHC Official (interp)",   c:"#dddddd", cls:"official",  w:2.5, o:.8},
+  TVCN:{n:"Track Consensus (TVCN)",  c:"#39c2a5", cls:"consensus", w:3,   o:.95},
+  TVCX:{n:"Track Consensus (TVCX)",  c:"#2f9e86", cls:"consensus", w:2.2, o:.85},
+  TVCA:{n:"Track Consensus (TVCA)",  c:"#2f9e86", cls:"consensus", w:2.2, o:.85},
+  HCCA:{n:"HFIP Corrected Consensus",c:"#6fb7ff", cls:"consensus", w:2.6, o:.9},
+  IVCN:{n:"Intensity Consensus",     c:"#8ab4ff", cls:"consensus", w:2,   o:.8},
+  GFEX:{n:"GFS/ECMWF Consensus",     c:"#9fd6c4", cls:"consensus", w:2,   o:.8},
+  AEMN:{n:"GEFS Ensemble Mean",      c:"#5dd6ff", cls:"consensus", w:2.4, o:.9},
+  AVNO:{n:"GFS",                     c:"#ff7043", cls:"model",     w:2,   o:.9},
+  AVNI:{n:"GFS (interp)",            c:"#ff7043", cls:"model",     w:1.5, o:.6},
+  EMX :{n:"ECMWF",                   c:"#ffe066", cls:"model",     w:2,   o:.9},
+  EMXI:{n:"ECMWF (interp)",          c:"#ffe066", cls:"model",     w:1.5, o:.6},
+  ECMO:{n:"ECMWF (op)",              c:"#ffd43b", cls:"model",     w:1.8, o:.8},
+  HWRF:{n:"HWRF",                    c:"#c026d3", cls:"model",     w:2,   o:.9},
+  HWFI:{n:"HWRF (interp)",           c:"#c026d3", cls:"model",     w:1.5, o:.6},
+  HMON:{n:"HMON",                    c:"#b18cff", cls:"model",     w:2,   o:.9},
+  HMNI:{n:"HMON (interp)",           c:"#b18cff", cls:"model",     w:1.5, o:.6},
+  HAFA:{n:"HAFS-A",                  c:"#ff5d5d", cls:"model",     w:2,   o:.9},
+  HAFB:{n:"HAFS-B",                  c:"#ff9d5d", cls:"model",     w:2,   o:.9},
+  CTCX:{n:"COAMPS-TC",               c:"#ff5d9e", cls:"model",     w:2,   o:.85},
+  CMC :{n:"Canadian (CMC)",          c:"#5dffd6", cls:"model",     w:2,   o:.85},
+  CMCI:{n:"Canadian (interp)",       c:"#5dffd6", cls:"model",     w:1.5, o:.6},
+  EGRR:{n:"UKMET",                   c:"#9bff5d", cls:"model",     w:2,   o:.85},
+  UKX :{n:"UKMET",                   c:"#9bff5d", cls:"model",     w:2,   o:.85},
+  UKXI:{n:"UKMET (interp)",          c:"#9bff5d", cls:"model",     w:1.5, o:.6},
+  NVGM:{n:"NAVGEM",                  c:"#ffb14d", cls:"model",     w:2,   o:.85},
+  CLP5:{n:"CLIPER (climo)",          c:"#5f7a74", cls:"model",     w:1.4, o:.6},
+  SHIP:{n:"SHIPS (intensity)",       c:"#7a9f98", cls:"model",     w:1.4, o:.5},
+  DSHP:{n:"DSHIPS (intensity)",      c:"#7a9f98", cls:"model",     w:1.4, o:.5},
+  LGEM:{n:"LGEM (intensity)",        c:"#6f8f88", cls:"model",     w:1.4, o:.5}
+};
+const SKIP_TECH = {CARQ:1, WRNG:1, BEST:1};
+function modelMeta(tech){
+  if(SKIP_TECH[tech]) return null;
+  if(MODELS[tech]) return Object.assign({id:tech}, MODELS[tech]);
+  if(/^(AP|AC|AE|EE|EN|EP)\d{2}$/.test(tech))                      // ensemble members
+    return {id:tech, n:"Ensemble member "+tech, c:"#6fb7ff", cls:"ensemble", w:1, o:.28};
+  return null;                                                      // unknown aid: not plotted
+}
+
+/* ---------- approximate coastline (for landfall detection) ---------- */
+const COASTLINE = [
+ {name:"US Gulf Coast", pts:[[25.95,-97.40],[26.55,-97.42],[27.30,-97.33],[27.84,-97.06],[28.20,-96.70],
+   [28.60,-95.97],[28.95,-95.36],[29.27,-94.83],[29.67,-93.93],[29.77,-93.33],[29.60,-92.60],[29.55,-92.05],
+   [29.50,-91.50],[29.35,-91.00],[29.24,-90.35],[29.10,-89.70],[29.15,-89.25],[29.60,-89.45],[30.00,-89.20],
+   [30.25,-88.90],[30.35,-88.50],[30.25,-88.08],[30.33,-87.50],[30.33,-87.00],[30.39,-86.50],[30.28,-86.00],
+   [30.15,-85.66],[29.95,-85.35],[29.72,-84.98],[29.90,-84.50],[30.07,-84.20],[29.70,-83.60],[29.13,-83.03],
+   [28.60,-82.80],[28.15,-82.76],[27.75,-82.60],[27.34,-82.55],[26.80,-82.25],[26.45,-81.95],[26.13,-81.80],
+   [25.60,-81.40],[25.12,-81.10],[25.14,-80.92]]},
+ {name:"Florida Keys", pts:[[25.14,-80.92],[24.95,-80.65],[24.71,-81.09],[24.55,-81.78]]},
+ {name:"US East Coast", pts:[[25.10,-80.44],[25.77,-80.13],[26.12,-80.10],[26.71,-80.03],[27.20,-80.17],
+   [27.64,-80.37],[28.05,-80.53],[28.40,-80.60],[29.00,-80.90],[29.21,-81.00],[29.89,-81.29],[30.29,-81.39],
+   [30.70,-81.45],[31.13,-81.40],[31.60,-81.15],[32.02,-80.88],[32.14,-80.75],[32.45,-80.35],[32.75,-79.87],
+   [33.20,-79.20],[33.69,-78.89],[33.95,-77.94],[34.35,-77.55],[34.72,-76.72],[34.59,-76.53],[35.00,-76.00],
+   [35.25,-75.53],[35.60,-75.47],[35.96,-75.63],[36.40,-75.83],[36.83,-75.97],[37.40,-75.70],[37.93,-75.36],
+   [38.34,-75.08],[38.80,-75.05],[38.93,-74.92],[39.36,-74.42],[39.90,-74.10],[40.47,-74.00],[40.60,-73.80],
+   [40.85,-72.60],[41.07,-71.86],[41.49,-71.31],[41.60,-70.80],[41.70,-70.30],[42.05,-70.18],[42.35,-70.95],
+   [42.80,-70.80],[43.07,-70.73],[43.65,-70.25],[44.00,-69.20],[44.39,-68.20],[44.70,-67.40],[44.90,-67.00]]},
+ {name:"Mexico / Yucatán", pts:[[25.95,-97.40],[24.50,-97.70],[23.20,-97.75],[22.25,-97.85],[21.00,-97.35],
+   [19.90,-96.40],[19.20,-96.13],[18.60,-95.10],[18.15,-94.42],[18.40,-93.00],[18.65,-91.80],[19.30,-90.90],
+   [19.85,-90.53],[20.70,-90.40],[21.28,-89.66],[21.50,-88.20],[21.45,-87.20],[21.16,-86.85],[20.60,-87.07],
+   [20.21,-87.43],[19.60,-87.45],[18.80,-87.80],[18.50,-88.30],[17.95,-88.20],[17.50,-88.19]]},
+ {name:"Cuba", pts:[[21.87,-84.95],[22.10,-84.00],[22.70,-83.00],[23.13,-82.38],[23.15,-81.25],[22.90,-80.20],
+   [22.52,-78.50],[21.90,-77.60],[21.55,-77.26],[21.00,-76.00],[20.70,-75.00],[20.35,-74.50],[19.90,-75.15],
+   [19.97,-75.85],[20.20,-76.70],[19.85,-77.73],[20.60,-78.70],[21.50,-80.00],[22.15,-80.45],[22.40,-81.50],
+   [22.00,-82.80],[21.87,-84.95]]},
+ {name:"Hispaniola", pts:[[19.76,-72.20],[19.90,-71.65],[19.80,-70.69],[19.30,-69.60],[19.20,-69.33],
+   [18.58,-68.37],[18.47,-69.90],[18.30,-70.70],[18.21,-71.10],[18.30,-71.70],[18.55,-72.33],[18.65,-73.50],
+   [18.40,-74.45],[19.00,-73.40],[19.76,-72.20]]},
+ {name:"Puerto Rico", pts:[[18.47,-66.11],[18.50,-67.00],[18.20,-67.14],[17.98,-66.61],[18.00,-65.90],
+   [18.33,-65.65],[18.47,-66.11]]},
+ {name:"Jamaica", pts:[[18.47,-77.92],[18.40,-76.90],[17.97,-76.79],[17.85,-77.60],[18.47,-77.92]]},
+ {name:"Bahamas", pts:[[26.60,-78.90],[26.70,-78.20],[26.40,-77.10],[25.60,-76.70],[25.15,-76.15],
+   [24.70,-76.20],[24.00,-75.40],[23.20,-75.10]]},
+ {name:"Andros / Nassau", pts:[[25.06,-77.35],[24.70,-77.95],[24.20,-77.80]]},
+ {name:"Central America", pts:[[17.50,-88.19],[16.00,-88.30],[15.80,-87.40],[15.95,-85.90],[15.30,-83.80],
+   [14.00,-83.20],[12.60,-83.60],[11.00,-83.70],[9.60,-82.60]]}
+];
+// nm distance from a point to a coastline segment (local equirectangular approximation)
+function segDistNm(plat,plon,alat,alon,blat,blon){
+  const kx=60*Math.cos((alat+blat)/2*Math.PI/180), ky=60;
+  const px=(plon-alon)*kx, py=(plat-alat)*ky;
+  const bx=(blon-alon)*kx, by=(blat-alat)*ky;
+  const l2=bx*bx+by*by;
+  let t=l2>0?(px*bx+py*by)/l2:0; t=Math.max(0,Math.min(1,t));
+  const dx=px-t*bx, dy=py-t*by;
+  return {nm:Math.hypot(dx,dy), lat:alat+(blat-alat)*t, lon:alon+(blon-alon)*t};
+}
+function distToCoast(lat,lon){
+  let best={nm:Infinity};
+  for(const seg of COASTLINE){
+    for(let i=1;i<seg.pts.length;i++){
+      const d=segDistNm(lat,lon,seg.pts[i-1][0],seg.pts[i-1][1],seg.pts[i][0],seg.pts[i][1]);
+      if(d.nm<best.nm) best={nm:d.nm, lat:d.lat, lon:d.lon, coast:seg.name};
+    }
+  }
+  return best;
+}
+function nearestPlaceName(lat,lon){
+  let best=null;
+  COAST.forEach(([name,la,lo])=>{ const d=haversine(lat,lon,la,lo); if(!best||d<best.d) best={name,d}; });
+  return best?best.name:"the coast";
+}
+
+/* ---------- ATCF parsing ---------- */
+function atcfCoord(s){
+  const m=/^(\d+)([NSEW])$/.exec(s||"");
+  if(!m) return null;
+  const v=parseInt(m[1],10)/10;
+  return (m[2]==="S"||m[2]==="W")?-v:v;
+}
+function parseADeck(text){
+  const lines=text.split(/\r?\n/);
+  let cycle="";
+  for(const ln of lines){
+    const f=ln.split(",");
+    if(f.length<10) continue;
+    const d=f[2].trim();
+    if(/^\d{10}$/.test(d) && d>cycle) cycle=d;
+  }
+  if(!cycle) return null;
+  const by={};
+  for(const ln of lines){
+    const f=ln.split(",").map(x=>x.trim());
+    if(f.length<10 || f[2]!==cycle) continue;
+    const tech=f[4], tau=parseInt(f[5],10);
+    if(!tech || isNaN(tau) || tau<0 || tau>168) continue;
+    const lat=atcfCoord(f[6]), lon=atcfCoord(f[7]);
+    if(lat==null||lon==null) continue;
+    (by[tech]=by[tech]||{});
+    if(by[tech][tau]===undefined)
+      by[tech][tau]={tau, lat, lon, vmax:parseInt(f[8],10)||0, mslp:parseInt(f[9],10)||null, ty:(f[10]||"").trim()};
+  }
+  const tracks={};
+  for(const t in by){
+    const arr=Object.values(by[t]).sort((a,b)=>a.tau-b.tau);
+    if(arr.length>=2 || t==="OFCL") tracks[t]=arr;
+  }
+  return {cycle, tracks};
+}
+function parseBDeck(text){
+  const pts=[], seen={};
+  for(const ln of text.split(/\r?\n/)){
+    const f=ln.split(",").map(x=>x.trim());
+    if(f.length<10) continue;
+    const dt=f[2]; if(!/^\d{10}$/.test(dt) || seen[dt]) continue;
+    const lat=atcfCoord(f[6]), lon=atcfCoord(f[7]);
+    if(lat==null||lon==null) continue;
+    seen[dt]=1;
+    pts.push({dt, lat, lon, vmax:parseInt(f[8],10)||0, ty:(f[10]||"").trim()});
+  }
+  return pts.sort((a,b)=>a.dt.localeCompare(b.dt));
+}
+// fetch text, transparently gunzipping .gz payloads
+async function fetchDeckText(url){
+  const res=await fetch(url,{signal:AbortSignal.timeout(15000)});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const buf=await res.arrayBuffer(), b=new Uint8Array(buf);
+  if(b.length>2 && b[0]===0x1f && b[1]===0x8b){
+    if(typeof DecompressionStream==="undefined") throw new Error("gzip unsupported");
+    const stream=new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return await new Response(stream).text();
+  }
+  return new TextDecoder().decode(buf);
+}
+const PROXIES=[
+  u=>u,
+  u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
+  u=>"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u)
+];
+async function fetchDeck(urls){
+  for(const u of urls) for(const wrap of PROXIES){
+    try{
+      const txt=await fetchDeckText(wrap(u));
+      if(txt && txt.length>80 && txt.indexOf(",")>0) return txt;
+    }catch(_){ /* next */ }
+  }
+  return null;
+}
+function deckUrls(id, kind){
+  const s=(id||"").toLowerCase();
+  if(!/^[a-z]{2}\d{6}$/.test(s)) return [];
+  return kind==="a"
+    ? [`https://ftp.nhc.noaa.gov/atcf/adecks/a${s}.dat`,
+       `https://ftp.nhc.noaa.gov/atcf/aid_public/a${s}.dat.gz`]
+    : [`https://ftp.nhc.noaa.gov/atcf/btk/b${s}.dat`,
+       `https://ftp.nhc.noaa.gov/atcf/bdecks/b${s}.dat`];
+}
+
+/* ---------- landfall analysis ---------- */
+const LANDFALL_NM=20;
+function densifyTrack(pts){
+  const out=[];
+  for(let i=0;i<pts.length;i++){
+    out.push(pts[i]);
+    const a=pts[i], b=pts[i+1]; if(!b) continue;
+    const dt=b.tau-a.tau; if(dt<=1) continue;
+    for(let k=1;k<dt;k++){
+      const f=k/dt;
+      out.push({tau:a.tau+k, lat:a.lat+(b.lat-a.lat)*f, lon:a.lon+(b.lon-a.lon)*f,
+        vmax:Math.round(a.vmax+(b.vmax-a.vmax)*f)});
+    }
+  }
+  return out.sort((x,y)=>x.tau-y.tau);
+}
+function trackLandfall(pts){
+  const dense=densifyTrack(pts.filter(p=>p.tau>=0));
+  let closest=null, landfall=null;
+  for(const p of dense){
+    const d=distToCoast(p.lat,p.lon);
+    if(!closest||d.nm<closest.nm) closest=Object.assign({},p,{nm:d.nm});
+    if(!landfall && d.nm<=LANDFALL_NM && p.vmax>=20) landfall=Object.assign({},p,{nm:d.nm});
+  }
+  if(landfall) landfall.place=nearestPlaceName(landfall.lat,landfall.lon);
+  if(closest)  closest.place=nearestPlaceName(closest.lat,closest.lon);
+  return {landfall, closest};
+}
+
+/* ---------- hurricane tracker state + map ---------- */
+let hurMap=null, hurLayers=[], adeckState={tracks:null,cycle:null,best:null,status:""},
+    hurShow={official:true,consensus:true,model:true,ensemble:false,cone:true};
+
+function ensureHurMap(){
+  if(hurMap) return hurMap;
+  hurMap=L.map("hurMap",{zoomControl:true,attributionControl:true,worldCopyJump:true});
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains:"abcd",maxZoom:12}).addTo(hurMap);
+  hurMap.setView([25,-72],4);
+  return hurMap;
+}
+function setAdeckStatus(html,warn){
+  const el=document.getElementById("adeckStatus"); if(!el) return;
+  el.innerHTML=html; el.classList.toggle("warn",!!warn);
+}
+async function mountHurricaneTracker(s){
+  if(!document.getElementById("hurMap")) return;
+  const map2=ensureHurMap();
+  setTimeout(()=>map2.invalidateSize(),60);
+  adeckState={tracks:null,cycle:null,best:null};
+  setAdeckStatus("Loading model guidance from NHC's ATCF deck…");
+  renderSpaghetti(s);                                  // draw what we have now (official track)
+
+  const [aTxt,bTxt]=await Promise.all([
+    fetchDeck(deckUrls(s.id,"a")),
+    fetchDeck(deckUrls(s.id,"b"))
+  ]);
+  if(bTxt){ try{ adeckState.best=parseBDeck(bTxt); }catch(_){ } }
+  if(aTxt){
+    try{
+      const parsed=parseADeck(aTxt);
+      if(parsed && Object.keys(parsed.tracks).length){
+        adeckState.tracks=parsed.tracks; adeckState.cycle=parsed.cycle;
+        const n=Object.keys(parsed.tracks).filter(t=>modelMeta(t)).length;
+        const c=parsed.cycle;
+        setAdeckStatus(`<b>${n}</b> guidance tracks loaded from NHC ATCF deck · model cycle <b>${c.slice(0,4)}-${c.slice(4,6)}-${c.slice(6,8)} ${c.slice(8,10)}Z</b>`+
+          (adeckState.best?` · best track: <b>${adeckState.best.length}</b> past fixes`:""));
+      }
+    }catch(err){ console.warn("a-deck parse:",err); }
+  }
+  if(!adeckState.tracks){
+    setAdeckStatus("Model guidance deck unavailable right now (NHC's ATCF files block direct browser access and the fallback proxies didn't respond). "+
+      "The official NHC forecast track above is still live, and the landfall estimate below uses it. "+
+      '<a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener">NHC</a>', true);
+  }
+  renderSpaghetti(s);
+  renderLandfallPanel(s);
+  renderGuidanceTable(s);
+  drawIntensitySpread(s);
+}
+
+function guidanceTracks(){
+  // all plottable guidance, plus the official advisory track as a fallback "OFCL"
+  const out={};
+  if(adeckState.tracks) for(const t in adeckState.tracks){ if(modelMeta(t)) out[t]=adeckState.tracks[t]; }
+  if(!out.OFCL && officialFcst && officialFcst.points && officialFcst.points.length){
+    out.OFCL=[{tau:0,lat:officialFcst.init.lat,lon:officialFcst.init.lon,vmax:officialFcst.points[0].wind}]
+      .concat(officialFcst.points.map(p=>({tau:p.h,lat:p.lat,lon:p.lon,vmax:p.wind})));
+  }
+  return out;
+}
+function renderSpaghetti(s){
+  if(!hurMap) return;
+  hurLayers.forEach(l=>hurMap.removeLayer(l)); hurLayers=[];
+  const tracks=guidanceTracks();
+  const pts=[];
+  // past (best) track
+  if(adeckState.best && adeckState.best.length>1){
+    const ll=adeckState.best.map(p=>[p.lat,p.lon]);
+    const l=L.polyline(ll,{color:"#5f7a74",weight:2,opacity:.8,dashArray:"4,4"}).addTo(hurMap);
+    l.bindPopup('<div class="alert-pop"><h4 style="color:#5f7a74">Best track (observed)</h4><div class="meta">Where the storm has already been</div></div>');
+    hurLayers.push(l); ll.forEach(x=>pts.push(x));
+  }
+  // guidance tracks, ensembles underneath
+  const order=["ensemble","model","consensus","official"];
+  order.forEach(cls=>{
+    for(const tech in tracks){
+      const m=modelMeta(tech); if(!m||m.cls!==cls||!hurShow[cls]) continue;
+      const tp=tracks[tech].filter(p=>p.tau>=0);
+      if(tp.length<2) continue;
+      const ll=tp.map(p=>[p.lat,p.lon]);
+      const line=L.polyline(ll,{color:m.c,weight:m.w,opacity:m.o}).addTo(hurMap);
+      line.bindPopup(modelPopup(tech,m,tp),{maxWidth:280});
+      hurLayers.push(line);
+      ll.forEach(x=>pts.push(x));
+      if(cls!=="ensemble"){                              // endpoint tick
+        const e=tp[tp.length-1];
+        const dot=L.circleMarker([e.lat,e.lon],{radius:m.cls==="official"?5:3,color:m.c,fillColor:m.c,fillOpacity:.9,weight:1}).addTo(hurMap);
+        dot.bindPopup(modelPopup(tech,m,tp),{maxWidth:280});
+        hurLayers.push(dot);
+      }
+    }
+  });
+  // official cone of uncertainty
+  if(hurShow.cone && officialFcst && officialFcst.points && officialFcst.points.length){
+    officialFcst.points.forEach(p=>{
+      const c=L.circle([p.lat,p.lon],{radius:coneRadiusNm(p.h)*1852,color:"#39c2a5",weight:1,
+        opacity:.35,fillColor:"#39c2a5",fillOpacity:.07,interactive:false}).addTo(hurMap);
+      hurLayers.push(c);
+    });
+  }
+  // current position
+  if(s.latitudeNumeric!=null){
+    const cat=catFromWind(parseInt(s.intensity,10));
+    const cur=L.circleMarker([s.latitudeNumeric,s.longitudeNumeric],
+      {radius:8,color:"#04110e",weight:2,fillColor:cat.color,fillOpacity:1}).addTo(hurMap);
+    cur.bindPopup(`<div class="alert-pop"><h4 style="color:${cat.color}">${s.name||"Storm"} — now</h4>`+
+      `<div class="meta">${cat.name} · ${s.intensity} kt (${ktToMph(parseInt(s.intensity,10))} mph)</div></div>`);
+    hurLayers.push(cur); pts.push([s.latitudeNumeric,s.longitudeNumeric]);
+  }
+  if(pts.length) try{ hurMap.fitBounds(pts,{padding:[28,28],maxZoom:7}); }catch(_){}
+  renderModelLegend(tracks);
+}
+function modelPopup(tech,m,tp){
+  const lf=trackLandfall(tp);
+  let body;
+  if(lf.landfall){
+    const c=catFromWind(lf.landfall.vmax);
+    body=`Reaches the coast near <b>${lf.landfall.place}</b> at <b>+${lf.landfall.tau} h</b><br>`+
+      `Forecast intensity there: <b style="color:${c.color}">${c.short}</b> — ${lf.landfall.vmax} kt (${ktToMph(lf.landfall.vmax)} mph)`;
+  }else if(lf.closest){
+    body=`No coastal landfall in this track.<br>Closest approach <b>${Math.round(lf.closest.nm)} nm</b> from ${lf.closest.place} at +${lf.closest.tau} h`;
+  }else body="No track data.";
+  return `<div class="alert-pop"><h4 style="color:${m.c}">${m.n}</h4>`+
+    `<div class="meta">${tech} · ${tp.length} points · out to +${tp[tp.length-1].tau} h</div>`+
+    `<p style="margin-top:6px;line-height:1.6">${body}</p></div>`;
+}
+function renderModelLegend(tracks){
+  const el=document.getElementById("modelLegend"); if(!el) return;
+  const seen={}, items=[];
+  for(const tech in tracks){
+    const m=modelMeta(tech); if(!m||m.cls==="ensemble"||!hurShow[m.cls]) continue;
+    if(seen[m.n]) continue; seen[m.n]=1;
+    items.push(`<span><i style="background:${m.c}"></i>${m.n}</span>`);
+  }
+  const ens=Object.keys(tracks).filter(t=>{const m=modelMeta(t);return m&&m.cls==="ensemble";}).length;
+  if(ens&&hurShow.ensemble) items.push(`<span><i style="background:#6fb7ff;opacity:.4"></i>GEFS members (${ens})</span>`);
+  if(adeckState.best) items.push('<span><i style="background:#5f7a74"></i>Observed best track</span>');
+  el.innerHTML=items.join("")||'<span>No guidance tracks plotted.</span>';
+}
+
+/* ---------- landfall panel ---------- */
+function renderLandfallPanel(s){
+  const el=document.getElementById("landfallPanel"); if(!el) return;
+  const tracks=guidanceTracks();
+  const rows=[];
+  for(const tech in tracks){
+    const m=modelMeta(tech); if(!m) continue;
+    const tp=tracks[tech].filter(p=>p.tau>=0); if(tp.length<2) continue;
+    rows.push(Object.assign({tech,m},trackLandfall(tp)));
+  }
+  if(!rows.length){ el.innerHTML='<div class="cone-fallback">No track guidance available to analyse yet.</div>'; return; }
+  const hits=rows.filter(r=>r.landfall);
+  const total=rows.length;
+  if(!hits.length){
+    const best=rows.filter(r=>r.closest).sort((a,b)=>a.closest.nm-b.closest.nm)[0];
+    el.innerHTML=`<div class="lf-head"><div class="lf-main" style="border-left-color:var(--accent)">`+
+      `<div class="lf-lab">LANDFALL OUTLOOK</div>`+
+      `<div class="lf-cat" style="color:var(--accent);font-size:17px">NO LANDFALL IN GUIDANCE</div>`+
+      `<div class="lf-sub">None of the ${total} guidance tracks bring the centre to the coast within their forecast window.`+
+      (best?`<br>Closest approach: <b>${Math.round(best.closest.nm)} nm</b> from ${best.closest.place} (${best.m.n}) at +${best.closest.tau} h.`:"")+
+      `<br>This can still change — re-check as new model cycles arrive.</div></div></div>`;
+    return;
+  }
+  // category distribution
+  const counts={};
+  hits.forEach(r=>{ const c=catFromWind(r.landfall.vmax); counts[c.short]=(counts[c.short]||0)+1; });
+  const ordered=SS.slice().reverse().filter(c=>counts[c.short]);
+  let modeCat=null,modeN=0;
+  ordered.forEach(c=>{ if(counts[c.short]>modeN){modeN=counts[c.short];modeCat=c;} });
+  const winds=hits.map(r=>r.landfall.vmax).sort((a,b)=>a-b);
+  const med=winds[Math.floor(winds.length/2)];
+  const taus=hits.map(r=>r.landfall.tau).sort((a,b)=>a-b);
+  const places={};
+  hits.forEach(r=>{ places[r.landfall.place]=(places[r.landfall.place]||0)+1; });
+  const topPlace=Object.keys(places).sort((a,b)=>places[b]-places[a])[0];
+  const pct=Math.round(hits.length/total*100);
+
+  const bars=ordered.map(c=>{
+    const n=counts[c.short], w=Math.round(n/hits.length*100);
+    return `<div class="lf-bar"><span class="bl" style="color:${c.color}">${c.short}</span>`+
+      `<span class="bt"><span class="bf" style="width:${w}%;background:${c.color}"></span></span>`+
+      `<span class="bn">${n} (${w}%)</span></div>`;
+  }).join("");
+
+  const tbl=hits.sort((a,b)=>a.landfall.tau-b.landfall.tau).map(r=>{
+    const c=catFromWind(r.landfall.vmax);
+    return `<tr><td class="mdl">${r.m.n}</td><td>+${r.landfall.tau} h</td><td>${r.landfall.place}</td>`+
+      `<td style="color:${c.color}">${r.landfall.vmax} kt</td><td style="color:${c.color}">${c.short}</td></tr>`;
+  }).join("");
+
+  el.innerHTML=
+    `<div class="lf-head"><div class="lf-main" style="border-left-color:${modeCat.color}">`+
+      `<div class="lf-lab">MOST LIKELY AT LANDFALL</div>`+
+      `<div class="lf-cat" style="color:${modeCat.color}">${modeCat.short}</div>`+
+      `<div class="lf-sub"><b>${modeN} of ${hits.length}</b> landfalling tracks agree · median ${med} kt (${ktToMph(med)} mph)<br>`+
+      `Most common area: <b>${topPlace}</b> · timing <b>+${taus[0]}–${taus[taus.length-1]} h</b><br>`+
+      `${pct}% of all ${total} guidance tracks reach the coast.</div></div></div>`+
+    `<div class="lf-bars">${bars}</div>`+
+    `<div class="gtable-wrap"><table class="gtable"><tr><th>GUIDANCE</th><th>LEAD</th><th>NEAR</th><th>WIND</th><th>CATEGORY</th></tr>${tbl}</table></div>`;
+}
+
+/* ---------- guidance table + intensity spread ---------- */
+const GTAUS=[12,24,36,48,72,96,120];
+function renderGuidanceTable(s){
+  const el=document.getElementById("guidanceTable"); if(!el) return;
+  const tracks=guidanceTracks();
+  const keys=Object.keys(tracks).filter(t=>{const m=modelMeta(t);return m&&m.cls!=="ensemble";})
+    .sort((a,b)=>{ const r={official:0,consensus:1,model:2};
+      return r[modelMeta(a).cls]-r[modelMeta(b).cls] || modelMeta(a).n.localeCompare(modelMeta(b).n); });
+  if(!keys.length){ el.innerHTML='<div class="cone-fallback">No guidance table available.</div>'; return; }
+  const head=`<tr><th>MODEL</th>${GTAUS.map(t=>`<th>+${t}h</th>`).join("")}</tr>`;
+  const body=keys.map(t=>{
+    const m=modelMeta(t), map={}; tracks[t].forEach(p=>map[p.tau]=p);
+    const cells=GTAUS.map(tau=>{
+      const p=map[tau];
+      if(!p||!p.vmax) return "<td>–</td>";
+      const c=catFromWind(p.vmax);
+      return `<td style="color:${c.color}">${p.vmax}</td>`;
+    }).join("");
+    return `<tr class="${m.cls==='official'?'off':''}"><td class="mdl" style="color:${m.c}">${m.n}</td>${cells}</tr>`;
+  }).join("");
+  el.innerHTML=`<table class="gtable">${head}${body}</table>`;
+}
+function drawIntensitySpread(s){
+  const cv=document.getElementById("intensitySpread"); if(!cv) return;
+  const ctx=cv.getContext("2d"), W=cv.width, H=cv.height; ctx.clearRect(0,0,W,H);
+  const tracks=guidanceTracks();
+  const series=Object.keys(tracks).map(t=>({t,m:modelMeta(t),pts:tracks[t].filter(p=>p.tau>=0&&p.vmax>0)}))
+    .filter(x=>x.m&&x.pts.length>=2);
+  const padL=42,padR=16,padT=14,padB=28;
+  if(!series.length){
+    ctx.fillStyle="#5f7a74"; ctx.font="14px ui-monospace,Menlo,monospace"; ctx.textAlign="center";
+    ctx.fillText("No intensity guidance available.",W/2,H/2); ctx.textAlign="left"; return;
+  }
+  const maxTau=Math.min(120,Math.max(...series.flatMap(x=>x.pts.map(p=>p.tau))));
+  const maxV=Math.max(90,...series.flatMap(x=>x.pts.map(p=>p.vmax)))+8;
+  const X=t=>padL+(t/maxTau)*(W-padL-padR);
+  const Y=v=>H-padB-(v/maxV)*(H-padT-padB);
+  // category bands
+  SS.forEach(c=>{ if(c.min<=0||c.min>maxV) return; const y=Y(c.min);
+    ctx.strokeStyle="#1c2a27"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="#3d524d"; ctx.font="9px ui-monospace,Menlo,monospace"; ctx.fillText(c.short,padL+3,y-3); });
+  // time axis
+  for(let t=0;t<=maxTau;t+=24){ const x=X(t);
+    ctx.strokeStyle="#131f1d"; ctx.beginPath(); ctx.moveTo(x,padT); ctx.lineTo(x,H-padB); ctx.stroke();
+    ctx.fillStyle="#5f7a74"; ctx.font="9px ui-monospace,Menlo,monospace"; ctx.fillText("+"+t+"h",x+2,H-padB+13); }
+  const order={ensemble:0,model:1,consensus:2,official:3};
+  series.sort((a,b)=>order[a.m.cls]-order[b.m.cls]).forEach(x=>{
+    if(!hurShow[x.m.cls]) return;
+    ctx.beginPath();
+    x.pts.forEach((p,i)=>{ const px=X(Math.min(p.tau,maxTau)), py=Y(p.vmax); i?ctx.lineTo(px,py):ctx.moveTo(px,py); });
+    ctx.strokeStyle=x.m.c; ctx.globalAlpha=x.m.o!=null?x.m.o:.9;
+    ctx.lineWidth=x.m.cls==="official"?3:(x.m.cls==="ensemble"?1:1.8);
+    ctx.stroke(); ctx.globalAlpha=1;
+  });
+  ctx.fillStyle="#5f7a74"; ctx.font="10px ui-monospace,Menlo,monospace";
+  ctx.fillText(maxV+" kt",4,Y(maxV)+10); ctx.fillText("0",4,H-padB);
+}
+
+/* ---------- layer toggles ---------- */
+document.addEventListener("click",e=>{
+  const btn=e.target.closest&&e.target.closest("#mtRow .mt");
+  if(!btn) return;
+  const cls=btn.dataset.cls;
+  hurShow[cls]=!hurShow[cls];
+  btn.classList.toggle("on",hurShow[cls]);
+  const s=stormData.find(x=>x.id===(location.hash.startsWith("#storm/")?decodeURIComponent(location.hash.slice(7)):""));
+  if(s){ renderSpaghetti(s); drawIntensitySpread(s); }
+});
+
 /* ---------- refresh cycle ---------- */
 const stRefresh = document.getElementById("stRefresh");
 let nextRefreshAt = Date.now()+REFRESH_MS;
@@ -2240,7 +2833,8 @@ function refreshAll(){
   loadStations();
   loadFavorites();
   if(toggles.spc) loadSpcOutlook();
-  if(document.getElementById("page-tropics").classList.contains("active")) loadTropics(true);
+  if(document.getElementById("page-hurricanes").classList.contains("active")) loadHurricanes(true);
+  if(document.getElementById("page-fronts").classList.contains("active")) loadFronts(true);
   if(document.getElementById("page-severe").classList.contains("active")) loadSevere(true);
   nextRefreshAt = Date.now()+REFRESH_MS;
 }
