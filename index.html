@@ -325,6 +325,40 @@ aside{
 .cone-fallback{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;background:var(--panel);border:1px dashed var(--line);border-radius:4px;padding:12px 14px}
 .cone-fallback a{color:var(--accent)}
 
+/* ---------- hurricanes tab: full-bleed basin map ---------- */
+.hur-main{flex:1;display:flex;min-height:0;position:relative}
+.hur-mapwrap{flex:1;position:relative;min-width:0}
+#basinMap{position:absolute;inset:0;background:#0a0f0e}
+#genControls{margin-top:8px;display:flex;flex-direction:column;gap:9px}
+#genVar{width:100%;padding:6px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.03em;
+  color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:3px}
+#genVar:focus{outline:none;border-color:var(--accent-dim)}
+#genPlay{width:26px;height:26px;flex-shrink:0;border:1px solid var(--accent-dim);border-radius:3px;color:var(--accent);font-size:11px}
+#genPlay:hover{background:rgba(57,194,165,.1)}
+#genHour{flex:1;min-width:0;accent-color:var(--accent);height:4px}
+.mini-charts{display:flex;flex-direction:column;gap:8px}
+.mini{display:block;text-decoration:none;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--panel-2)}
+.mini img{width:100%;display:block;min-height:60px;background:#0a0f0e}
+.mini span{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);padding:5px 7px}
+.mini:hover{border-color:var(--accent-dim)} .mini:hover span{color:var(--accent)}
+
+.basin-readout{
+  position:absolute;right:12px;top:12px;z-index:900;width:300px;max-width:calc(100% - 24px);
+  background:rgba(12,18,17,.95);border:1px solid var(--line);border-radius:4px;
+  padding:12px 14px;backdrop-filter:blur(5px);box-shadow:0 6px 22px rgba(0,0,0,.5);
+}
+.br-x{position:absolute;right:8px;top:7px;color:var(--muted);font-size:14px;padding:2px 5px}
+.br-x:hover{color:var(--warn)}
+.br-score{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1.05}
+.br-verdict{font-family:var(--mono);font-size:11px;letter-spacing:.14em;margin-top:2px}
+.br-where{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--muted);margin:6px 0 10px;line-height:1.6}
+.br-ing{display:flex;align-items:flex-start;gap:8px;font-family:var(--mono);font-size:10px;line-height:1.5;padding:4px 0;border-top:1px solid var(--line)}
+.br-ing .ic{width:13px;flex-shrink:0;font-size:11px}
+.br-ing .nm{flex:1;color:var(--muted)}
+.br-ing .vl{color:var(--ink);font-weight:700;text-align:right;white-space:nowrap}
+.br-note{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--dim);margin-top:9px;line-height:1.6}
+@media(max-width:760px){ .basin-readout{right:8px;top:8px;width:min(300px,calc(100% - 16px));padding:10px 12px} }
+
 /* ---------- hurricane tracker ---------- */
 .hur-map{height:460px;border:1px solid var(--line);border-radius:4px;background:#0a0f0e;margin-top:4px}
 @media(max-width:760px){ .hur-map{height:330px} }
@@ -378,9 +412,9 @@ table.gtable tr.off td{background:rgba(255,255,255,.05);font-weight:700}
 .sev-key i{width:14px;height:14px;border-radius:3px;display:inline-block;margin-right:6px}
 .sev-note{font-family:var(--mono);font-size:11px;line-height:1.8;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:4px;padding:12px 14px;margin-top:16px}
 .sev-note a{color:var(--accent)}
-.chart img.broken{display:none}
-.chart .imgfail{font-family:var(--mono);font-size:10px;color:var(--warn);padding:16px 4px;text-align:center;border:1px dashed var(--line);border-radius:3px}
-.chart .imgfail a{color:var(--accent)}
+img.broken{display:none}
+.imgfail{font-family:var(--mono);font-size:10px;color:var(--warn);padding:14px 6px;text-align:center;border:1px dashed var(--line);border-radius:3px;line-height:1.6}
+.imgfail a{color:var(--accent)}
 
 /* ---------- learn page ---------- */
 .learn{max-width:820px}
@@ -425,7 +459,7 @@ footer .dot{color:var(--accent-dim)}
   background:var(--accent);padding:6px 11px;border-radius:3px;font-weight:700;
 }
 #sideBtn:active{opacity:.8}
-#sidebarBackdrop{display:none}
+.side-backdrop{display:none}
 @media(max-width:760px){
   aside{position:absolute;z-index:1100;top:0;left:0;height:100%;max-width:86vw;
     transform:translateX(-100%);transition:transform .2s;box-shadow:6px 0 24px rgba(0,0,0,.6)}
@@ -436,7 +470,7 @@ footer .dot{color:var(--accent-dim)}
   nav{gap:2px}
   nav button{padding:6px 8px;font-size:10px;letter-spacing:.06em}
   /* dim backdrop when the panel is open; tap it to close */
-  #sidebarBackdrop.show{display:block;position:absolute;inset:0;z-index:1050;background:rgba(0,0,0,.45)}
+  .side-backdrop.show{display:block;position:absolute;inset:0;z-index:1050;background:rgba(0,0,0,.45)}
 }
 </style>
 </head>
@@ -618,25 +652,55 @@ footer .dot{color:var(--accent-dim)}
 
   <!-- ============ TROPICS + FRONTS PAGE ============ -->
   <div class="page" id="page-hurricanes">
-    <div class="scroll-page" id="hurList">
-      <h2>ACTIVE TROPICAL CYCLONES</h2>
-      <div class="sub">NHC CURRENTSTORMS.JSON · ATLANTIC / E-PAC / C-PAC · TAP A STORM FOR THE FULL TRACKER</div>
-      <div class="storm-grid" id="stormGrid"></div>
-      <div id="stormMsg" hidden></div>
-
-      <h2>BASIN OUTLOOK</h2>
-      <div class="sub">NHC 7-DAY TROPICAL WEATHER OUTLOOK — WHERE NEW SYSTEMS MAY FORM</div>
-      <div class="chart-grid">
-        <div class="chart">
-          <h5>ATLANTIC — 7-DAY TROPICAL OUTLOOK</h5>
-          <img data-src="https://www.nhc.noaa.gov/xgtwo/two_atl_7d0.png" alt="NHC Atlantic 7-day tropical weather outlook" loading="lazy">
-          <div class="cap">SOURCE NHC.NOAA.GOV</div>
+    <div class="hur-main" id="hurMain">
+      <div class="side-backdrop" id="hurBackdrop"></div>
+      <aside id="hurSide">
+        <div>
+          <div class="sec-title">DEVELOPMENT RISK</div>
+          <button class="toggle on" id="tgGenesis">
+            <span><span class="t-name">Genesis Potential</span><span class="t-sub">STORM INGREDIENTS</span></span>
+            <span class="lamp"></span>
+          </button>
+          <div id="genControls">
+            <select id="genVar" aria-label="Ingredient layer">
+              <option value="genesis">Genesis potential (all ingredients)</option>
+              <option value="sst">Sea surface temperature</option>
+              <option value="shear">Wind shear (200–850)</option>
+              <option value="rh">Mid-level humidity (600 hPa)</option>
+              <option value="vort">Low-level spin (850 hPa)</option>
+            </select>
+            <div class="fcst-time">
+              <div class="fcst-srow">
+                <button type="button" id="genPlay" title="Animate forecast">▶</button>
+                <input type="range" id="genHour" min="0" max="72" step="1" value="0">
+              </div>
+              <div class="fcst-valid">VALID <b id="genValid">—</b> · <b id="genLead">NOW</b></div>
+            </div>
+            <div class="fcst-legend"><span id="genLegMin">—</span><div class="fcst-bar" id="genBar"></div><span id="genLegMax">—</span></div>
+            <div class="fcst-attr" id="genAttr">OPEN-METEO MODEL FIELDS</div>
+          </div>
         </div>
-        <div class="chart">
-          <h5>E. PACIFIC — 7-DAY TROPICAL OUTLOOK</h5>
-          <img data-src="https://www.nhc.noaa.gov/xgtwo/two_pac_7d0.png" alt="NHC Eastern Pacific 7-day tropical weather outlook" loading="lazy">
-          <div class="cap">SOURCE NHC.NOAA.GOV</div>
+        <div>
+          <div class="sec-title">ACTIVE STORMS</div>
+          <div class="storm-grid" id="stormGrid"></div>
+          <div id="stormMsg" hidden></div>
         </div>
+        <div>
+          <div class="sec-title">OFFICIAL OUTLOOK</div>
+          <div class="mini-charts">
+            <a class="mini" href="https://www.nhc.noaa.gov/gtwo.php?basin=atlc" target="_blank" rel="noopener">
+              <img data-src="https://www.nhc.noaa.gov/xgtwo/two_atl_7d0.png" alt="NHC Atlantic 7-day tropical outlook" loading="lazy">
+              <span>ATLANTIC — NHC 7-DAY</span></a>
+            <a class="mini" href="https://www.nhc.noaa.gov/gtwo.php?basin=epac" target="_blank" rel="noopener">
+              <img data-src="https://www.nhc.noaa.gov/xgtwo/two_pac_7d0.png" alt="NHC East Pacific 7-day tropical outlook" loading="lazy">
+              <span>E. PACIFIC — NHC 7-DAY</span></a>
+          </div>
+        </div>
+        <div class="hint">TAP THE MAP FOR AN INGREDIENT BREAKDOWN</div>
+      </aside>
+      <div class="hur-mapwrap">
+        <div id="basinMap"></div>
+        <div class="basin-readout" id="basinReadout" hidden></div>
       </div>
     </div>
 
@@ -728,6 +792,17 @@ footer .dot{color:var(--accent-dim)}
       </table>
       <p>Important: the category only measures wind. Most hurricane damage actually comes from <b>water</b> — ocean surge pushed ashore and inland flooding from heavy rain — so a "lower category" storm can still be very dangerous. The <b>Tropics + Fronts</b> page lists any active storms and shows the official outlook maps.</p>
 
+      <h3>WHAT A HURRICANE NEEDS TO FORM</h3>
+      <p><span class="plain">In plain terms:</span> hurricanes don't appear just anywhere — several things have to line up at once. Meteorologists have known the recipe since the 1960s, and the <b>Genesis Potential</b> layer on the Hurricanes tab checks each ingredient from live model data. Tap the map anywhere for the breakdown.</p>
+      <ul class="map-key">
+        <li><span class="k-ic" style="color:#ff5d5d">🌡</span><span><b>Warm ocean water</b> — about <b>26.5 °C (80 °F)</b> or warmer, and deep, not just a thin warm skin. The ocean is the fuel; this is why hurricane season follows the warmest water.</span></li>
+        <li><span class="k-ic" style="color:#39c2a5">🪁</span><span><b>Low wind shear</b> — if winds high up blow much harder or from a different direction than winds near the surface, they tilt and tear the storm apart. Storms need a calm column to stack up vertically.</span></li>
+        <li><span class="k-ic" style="color:#6fb7ff">💧</span><span><b>Moist air in the middle levels</b> — dry air (like Saharan dust surging off Africa) gets pulled into the storm and chokes off its thunderstorms.</span></li>
+        <li><span class="k-ic" style="color:#ffe066">🌀</span><span><b>A pre-existing spin</b> — some low-level rotation or disturbance to organize around, often a tropical wave rolling off Africa.</span></li>
+        <li><span class="k-ic" style="color:#b18cff">🌍</span><span><b>Distance from the equator</b> — at least ~5° of latitude. The Earth's rotation is what makes the system spin, and that effect vanishes at the equator. Hurricanes essentially never form right on it.</span></li>
+      </ul>
+      <div class="callout">Miss <b>any one</b> of these and nothing forms — which is why the map multiplies them together rather than averaging. A spot with bath-warm water but 40 kt of shear scores near zero, and correctly so. It shows where conditions are <i>favorable</i>, not that a storm <i>will</i> form — the NHC's Tropical Weather Outlook is the official formation forecast.</div>
+
       <h3>READING THE FORECAST NUMBERS</h3>
       <p>When you click the map or open your favorite place, a few terms show up:</p>
       <dl class="glossary">
@@ -782,13 +857,13 @@ document.querySelectorAll("nav button").forEach(btn=>{
     setSidebar(false);                                   // close the mobile panel on page change
     updateSideBtn(btn.dataset.page);                     // the ☰ LAYERS button only applies to the map
     if(btn.dataset.page==="map") map.invalidateSize();
-    if(btn.dataset.page==="hurricanes"){ loadHurricanes(); routeStorm(); }
+    if(btn.dataset.page==="hurricanes"){ loadHurricanes(); routeStorm(); mountBasinMap(); }
     if(btn.dataset.page==="fronts") loadFronts();
     if(btn.dataset.page==="severe") loadSevere();
   });
 });
 function updateSideBtn(page){
-  document.getElementById("sideBtn").classList.toggle("avail", page==="map");
+  document.getElementById("sideBtn").classList.toggle("avail", page==="map"||page==="hurricanes");
 }
 updateSideBtn("map");
 
@@ -809,13 +884,18 @@ function routeStorm(){
 window.addEventListener("hashchange",routeStorm);
 /* ---------- mobile layers panel ---------- */
 function setSidebar(open){
-  document.getElementById("sidebar").classList.toggle("open",open);
-  document.getElementById("sidebarBackdrop").classList.toggle("show",open);
+  const pg=document.querySelector(".page.active");
+  if(!pg) return;
+  const a=pg.querySelector("aside"), b=pg.querySelector(".side-backdrop");
+  if(a) a.classList.toggle("open",open);
+  if(b) b.classList.toggle("show",open);
 }
-document.getElementById("sideBtn").addEventListener("click",()=>{
-  setSidebar(!document.getElementById("sidebar").classList.contains("open"));
-});
-document.getElementById("sidebarBackdrop").addEventListener("click",()=>setSidebar(false));
+function sidebarOpen(){
+  const pg=document.querySelector(".page.active"), a=pg&&pg.querySelector("aside");
+  return !!(a&&a.classList.contains("open"));
+}
+document.getElementById("sideBtn").addEventListener("click",()=>setSidebar(!sidebarOpen()));
+document.querySelectorAll(".side-backdrop").forEach(b=>b.addEventListener("click",()=>setSidebar(false)));
 
 /* ---------- map ---------- */
 const map = L.map("map",{center:[38.5,-96.5],zoom:5,zoomControl:true,attributionControl:true});
@@ -1633,6 +1713,7 @@ async function loadHurricanes(force){
   stormData = data.activeStorms;
   stormData.forEach(recordStormObs);   // build local intensity history
   renderStormCards();
+  renderBasinStorms();
   // if a detail subpage is open for a storm that still exists, refresh it
   const openId = location.hash.startsWith("#storm/") ? decodeURIComponent(location.hash.slice(7)) : null;
   if(openId && stormData.some(s=>s.id===openId)) openStorm(openId);
@@ -1828,12 +1909,13 @@ function forecastIntensity(s,hist,hours){
 function showStormList(){
   if(hurMap){ try{ hurMap.remove(); }catch(_){ } hurMap=null; hurLayers=[]; }
   document.getElementById("stormDetail").hidden = true;
-  document.getElementById("hurList").hidden = false;
+  setTimeout(()=>{ if(basinMap) basinMap.invalidateSize(); },60);
+  document.getElementById("hurMain").hidden = false;
 }
 function openStorm(id){
   const s = stormData.find(x=>x.id===id);
   const detail = document.getElementById("stormDetail");
-  document.getElementById("hurList").hidden = true;
+  document.getElementById("hurMain").hidden = true;
   detail.hidden = false;
   detail.scrollTop = 0;
   if(!s){
@@ -2823,6 +2905,300 @@ document.addEventListener("click",e=>{
   const s=stormData.find(x=>x.id===(location.hash.startsWith("#storm/")?decodeURIComponent(location.hash.slice(7)):""));
   if(s){ renderSpaghetti(s); drawIntensitySpread(s); }
 });
+
+/* ============================================================
+   BASIN MAP + TROPICAL GENESIS POTENTIAL
+
+   "Where are the ingredients for a hurricane?" The classic genesis
+   parameters (Gray 1968/79; Emanuel & Nolan 2004 GPI) are:
+     • warm sea surface temperature (deep warm layer, ~26.5 °C+)
+     • weak deep-layer vertical wind shear (200–850 hPa)
+     • moist mid-levels (dry air / SAL chokes convection)
+     • pre-existing low-level spin (850 hPa absolute vorticity)
+     • enough Coriolis — nothing spins up within ~5° of the equator
+   Each is computed on a grid from real Open-Meteo model fields and
+   combined multiplicatively, so a single missing ingredient kills the
+   score — which is how genesis actually works.
+   ============================================================ */
+const GEN_COLS=16, GEN_ROWS=11, OMEGA=7.292e-5, KT2MS=0.514444;
+const GEN_VARS={
+  genesis:{label:"Genesis potential", unit:"", lo:0, hi:100, clearBelow:6,
+    ramp:[[0,"#07231f"],[15,"#0f6b57"],[30,"#1fa38a"],[50,"#ffe066"],[70,"#ffb14d"],[85,"#ff5d5d"],[100,"#c026d3"]],
+    get:(c)=>c.G},
+  sst:{label:"Sea surface temp", unit:"°C", lo:18, hi:32, clearBelow:null,
+    ramp:[[18,"#2a3f8f"],[22,"#2f8fb8"],[25,"#1fa38a"],[26.5,"#39c2a5"],[28,"#ffe066"],[30,"#ffb14d"],[32,"#ff5d5d"]],
+    get:(c)=>c.sst},
+  shear:{label:"Deep-layer shear", unit:"kt", lo:0, hi:60, clearBelow:null,
+    ramp:[[0,"#0b6b3a"],[10,"#39c2a5"],[20,"#ffe066"],[30,"#ffb14d"],[45,"#ff5d5d"],[60,"#c026d3"]],
+    get:(c)=>c.shear},
+  rh:{label:"Mid-level humidity", unit:"%", lo:10, hi:90, clearBelow:null,
+    ramp:[[10,"#6b4a2a"],[30,"#b08a4a"],[50,"#ffe066"],[65,"#39c2a5"],[80,"#1f8fb8"],[90,"#2a5fd0"]],
+    get:(c)=>c.rh},
+  vort:{label:"Low-level spin", unit:"×10⁻⁵/s", lo:-2, hi:8, clearBelow:null,
+    ramp:[[-2,"#1a2b4a"],[0,"#0c1211"],[1,"#1fa38a"],[3,"#ffe066"],[5,"#ffb14d"],[8,"#ff5d5d"]],
+    get:(c)=>c.eta!=null?c.eta*1e5:null}
+};
+let basinMap=null, genLayer=null, basinStormMarkers=[],
+    genState={on:true, variable:"genesis", hour:0, grid:null, times:null, latlon:null,
+              sst:null, bounds:null, loading:false};
+
+function setGenAttr(t,warn){ const el=document.getElementById("genAttr"); if(!el) return;
+  el.textContent=t; el.classList.toggle("off",!!warn); }
+
+function mountBasinMap(){
+  if(!document.getElementById("basinMap")) return;
+  if(!basinMap){
+    basinMap=L.map("basinMap",{zoomControl:true,attributionControl:true,worldCopyJump:true});
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+      attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains:"abcd",maxZoom:10}).addTo(basinMap);
+    basinMap.createPane("gen").style.zIndex=380;
+    basinMap.getPane("gen").style.opacity="0.72";
+    basinMap.setView([22,-62],4);
+    basinMap.on("click",e=>showBasinReadout(e.latlng.lat,e.latlng.lng));
+    let mv=null;
+    basinMap.on("moveend",()=>{ if(!genState.on) return; clearTimeout(mv); mv=setTimeout(loadGenesisField,700); });
+    updateGenLegend();
+    loadGenesisField();
+  }
+  setTimeout(()=>{ basinMap.invalidateSize(); renderBasinStorms(); },60);
+}
+function renderBasinStorms(){
+  if(!basinMap) return;
+  basinStormMarkers.forEach(m=>basinMap.removeLayer(m)); basinStormMarkers=[];
+  (stormData||[]).forEach(s=>{
+    if(s.latitudeNumeric==null) return;
+    const cat=catFromWind(parseInt(s.intensity,10));
+    const m=L.circleMarker([s.latitudeNumeric,s.longitudeNumeric],
+      {radius:9,color:"#04110e",weight:2,fillColor:cat.color,fillOpacity:1}).addTo(basinMap);
+    m.bindPopup(`<div class="alert-pop"><h4 style="color:${cat.color}">${s.name||"Storm"}</h4>`+
+      `<div class="meta">${cat.name} · ${s.intensity} kt (${ktToMph(parseInt(s.intensity,10))} mph)</div>`+
+      `<p style="margin-top:6px"><a href="#storm/${encodeURIComponent(s.id)}" style="color:var(--accent)">Open full tracker →</a></p></div>`);
+    basinStormMarkers.push(m);
+  });
+}
+
+async function loadGenesisField(){
+  if(!genState.on||!basinMap||genState.loading) return;
+  genState.loading=true;
+  const b=basinMap.getBounds();
+  const s=b.getSouth(),n=b.getNorth(),w=b.getWest(),e=b.getEast();
+  const lats=[],lons=[];
+  for(let r=0;r<GEN_ROWS;r++) for(let c=0;c<GEN_COLS;c++){
+    lats.push(+(n-(n-s)*r/(GEN_ROWS-1)).toFixed(3));     // row 0 = north edge
+    lons.push(+(w+(e-w)*c/(GEN_COLS-1)).toFixed(3));
+  }
+  genState.bounds=[[s,w],[n,e]]; genState.latlon={lats,lons}; genState.sst=null;
+  setGenAttr("LOADING INGREDIENT FIELDS…");
+  try{
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lats.join(",")}&longitude=${lons.join(",")}`+
+      `&hourly=wind_speed_200hPa,wind_direction_200hPa,wind_speed_850hPa,wind_direction_850hPa,relative_humidity_600hPa`+
+      `&wind_speed_unit=kn&forecast_days=3&timezone=UTC`;
+    const res=await fetch(url); if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json(), arr=Array.isArray(data)?data:[data];
+    genState.times=(arr[0]&&arr[0].hourly)?arr[0].hourly.time:[];
+    genState.grid=arr.map(p=>({hourly:(p&&p.hourly)?p.hourly:{}, elev:(p&&p.elevation!=null)?p.elevation:0}));
+    const hEl=document.getElementById("genHour"), max=Math.min(72,(genState.times.length-1)||0);
+    if(hEl){ hEl.max=max; genState.hour=Math.min(genState.hour,max); hEl.value=genState.hour; }
+    setGenAttr("OPEN-METEO MODEL FIELDS · SST LOADING…");
+    renderGenesisField();
+    loadSSTGrid(lats,lons);                                  // best effort, fills in after
+  }catch(err){
+    genState.grid=null;
+    if(genLayer){ basinMap.removeLayer(genLayer); genLayer=null; }
+    setGenAttr("INGREDIENT FIELDS UNAVAILABLE",true);
+    console.warn("Genesis field:",err);
+  }finally{ genState.loading=false; }
+}
+async function fetchSST(lats,lons){
+  const url=`https://marine-api.open-meteo.com/v1/marine?latitude=${lats.join(",")}&longitude=${lons.join(",")}`+
+    `&hourly=sea_surface_temperature&forecast_days=3&timezone=UTC`;
+  const res=await fetch(url); if(!res.ok) throw new Error("HTTP "+res.status);
+  const d=await res.json();
+  return (Array.isArray(d)?d:[d]).map(p=>(p&&p.hourly)?p.hourly.sea_surface_temperature:null);
+}
+// The marine API covers ocean only; a land point can reject the whole batch,
+// so fall back to quarters and keep whatever succeeds.
+async function loadSSTGrid(lats,lons){
+  let sst=null;
+  try{ sst=await fetchSST(lats,lons); }
+  catch(_){
+    const out=new Array(lats.length).fill(null), size=Math.ceil(lats.length/4);
+    for(let i=0;i<lats.length;i+=size){
+      try{ const r=await fetchSST(lats.slice(i,i+size),lons.slice(i,i+size));
+           r.forEach((v,k)=>out[i+k]=v); }catch(_){ }
+    }
+    if(out.some(x=>x)) sst=out;
+  }
+  genState.sst=sst;
+  setGenAttr(sst?"OPEN-METEO MODEL FIELDS · SST + SHEAR + MOISTURE + SPIN"
+                :"OPEN-METEO MODEL FIELDS · SST UNAVAILABLE (SCORE USES SHEAR/MOISTURE/SPIN)", !sst);
+  renderGenesisField();
+}
+
+function windUV(h,hr,lvl){
+  const sp=h["wind_speed_"+lvl], dr=h["wind_direction_"+lvl];
+  if(!sp||!dr) return null;
+  const w=sp[hr], a=dr[hr];
+  if(w==null||a==null) return null;
+  const r=Math.PI/180;
+  return {u:-w*Math.sin(a*r), v:-w*Math.cos(a*r)};        // knots, meteorological convention
+}
+// relative vorticity by centred differences on the grid, + Coriolis -> absolute vorticity
+function vorticityAt(idx,hr){
+  const c=idx%GEN_COLS, r=(idx/GEN_COLS)|0;
+  if(c<1||c>=GEN_COLS-1||r<1||r>=GEN_ROWS-1) return null;
+  const g=genState.grid, ll=genState.latlon;
+  const E=windUV(g[idx+1].hourly,hr,"850hPa"), W=windUV(g[idx-1].hourly,hr,"850hPa");
+  const N=windUV(g[idx-GEN_COLS].hourly,hr,"850hPa"), S=windUV(g[idx+GEN_COLS].hourly,hr,"850hPa");
+  if(!E||!W||!N||!S) return null;
+  const lat=ll.lats[idx], rad=Math.PI/180;
+  const dx=(ll.lons[idx+1]-ll.lons[idx-1])*111320*Math.cos(lat*rad);
+  const dy=(ll.lats[idx-GEN_COLS]-ll.lats[idx+GEN_COLS])*111320;
+  if(!dx||!dy) return null;
+  const zeta=((E.v-W.v)*KT2MS)/dx - ((N.u-S.u)*KT2MS)/dy;
+  return zeta + 2*OMEGA*Math.sin(lat*rad);
+}
+const clamp01=(x,a,b)=>Math.max(0,Math.min(1,(x-a)/(b-a)));
+function genesisAt(idx,hr){
+  const g=genState.grid&&genState.grid[idx]; if(!g) return null;
+  const lat=genState.latlon.lats[idx], lon=genState.latlon.lons[idx];
+  if(g.elev>10) return {land:true, lat, lon};
+  const h=g.hourly;
+  const u2=windUV(h,hr,"200hPa"), u8=windUV(h,hr,"850hPa");
+  if(!u2||!u8) return null;
+  const shear=Math.hypot(u2.u-u8.u, u2.v-u8.v);
+  const rh=(h.relative_humidity_600hPa||[])[hr];
+  const sstSeries=genState.sst?genState.sst[idx]:null;
+  const sst=sstSeries?sstSeries[hr]:null;
+  const etaRaw=vorticityAt(idx,hr);
+  const eta=etaRaw!=null?(lat>=0?etaRaw:-etaRaw):null;    // cyclonic-positive in both hemispheres
+
+  const sstS   = sst!=null ? clamp01(sst,25,28) : null;
+  const shearS = clamp01(30-shear,0,20);
+  const rhS    = rh!=null ? clamp01(rh,30,70) : 0;
+  const vortS  = eta!=null ? clamp01(eta*1e5,0.5,4.5) : 0.4;
+  const corS   = clamp01(Math.abs(lat),4,9);
+  const G = 100 * corS * (sstS!=null?sstS:0.6) * shearS * rhS * (0.35+0.65*vortS);
+  return {G, sst, shear, rh, eta, lat, lon, sstS, shearS, rhS, vortS, corS, sstKnown:sstS!=null};
+}
+
+function renderGenesisField(){
+  if(!basinMap||!genState.on||!genState.grid||!genState.bounds) return;
+  const meta=GEN_VARS[genState.variable], hr=genState.hour;
+  const cv=document.createElement("canvas"); cv.width=GEN_COLS; cv.height=GEN_ROWS;
+  const ctx=cv.getContext("2d"), img=ctx.createImageData(GEN_COLS,GEN_ROWS);
+  for(let i=0;i<GEN_COLS*GEN_ROWS;i++){
+    const cell=genesisAt(i,hr);
+    let rgb=[12,18,17], a=0;
+    if(cell && !cell.land){
+      const v=meta.get(cell);
+      if(v!=null && !isNaN(v)){
+        rgb=rampColor(v,meta.ramp); a=255;
+        if(meta.clearBelow!=null && v<meta.clearBelow) a=0;
+      }
+    }
+    img.data[i*4]=rgb[0]; img.data[i*4+1]=rgb[1]; img.data[i*4+2]=rgb[2]; img.data[i*4+3]=a;
+  }
+  ctx.putImageData(img,0,0);
+  const url=cv.toDataURL();
+  if(genLayer){ genLayer.setUrl(url); genLayer.setBounds(genState.bounds); }
+  else genLayer=L.imageOverlay(url,genState.bounds,{pane:"gen",opacity:1,interactive:false}).addTo(basinMap);
+  const t=genState.times&&genState.times[hr];
+  const gv=document.getElementById("genValid"), gl=document.getElementById("genLead");
+  if(gv) gv.textContent=t?t.replace("T"," ")+"Z":"—";
+  if(gl) gl.textContent=hr===0?"NOW":"+"+hr+"H";
+}
+function updateGenLegend(){
+  const meta=GEN_VARS[genState.variable], lo=meta.ramp[0][0], hi=meta.ramp[meta.ramp.length-1][0];
+  const stops=meta.ramp.map(([v,c])=>`${c} ${((v-lo)/((hi-lo)||1)*100).toFixed(0)}%`).join(",");
+  const bar=document.getElementById("genBar"); if(bar) bar.style.background=`linear-gradient(90deg,${stops})`;
+  const a=document.getElementById("genLegMin"), b=document.getElementById("genLegMax");
+  if(a) a.textContent=lo;
+  if(b) b.textContent=hi+(meta.unit?" "+meta.unit:"");
+}
+
+/* ---------- click readout: the ingredient breakdown ---------- */
+function nearestGenIdx(lat,lon){
+  if(!genState.latlon) return -1;
+  let bi=-1,bd=Infinity;
+  genState.latlon.lats.forEach((la,i)=>{
+    const d=Math.abs(la-lat)+Math.abs(genState.latlon.lons[i]-lon);
+    if(d<bd){bd=d;bi=i;}
+  });
+  return bi;
+}
+function verdict(G){
+  if(G>=60) return {t:"HIGH POTENTIAL",  c:"#ff5d5d"};
+  if(G>=35) return {t:"MODERATE",        c:"#ffb14d"};
+  if(G>=15) return {t:"MARGINAL",        c:"#ffe066"};
+  return      {t:"UNFAVORABLE",          c:"#5f7a74"};
+}
+function ingRow(ok,name,val,need){
+  const ic = ok==null ? '<span style="color:#5f7a74">?</span>'
+    : ok>=.66?'<span style="color:#39c2a5">✓</span>' : ok>=.33?'<span style="color:#ffe066">~</span>' : '<span style="color:#ff5d5d">✗</span>';
+  return `<div class="br-ing"><span class="ic">${ic}</span><span class="nm">${name}`+
+    (need?`<br><span style="color:var(--dim);font-size:8px">${need}</span>`:"")+`</span><span class="vl">${val}</span></div>`;
+}
+function showBasinReadout(lat,lon){
+  const el=document.getElementById("basinReadout"); if(!el) return;
+  if(!genState.grid){ el.hidden=false; el.innerHTML=`<button class="br-x" onclick="document.getElementById('basinReadout').hidden=true">✕</button>`+
+    `<div class="br-where">Ingredient fields haven't loaded for this view yet.</div>`; return; }
+  const idx=nearestGenIdx(lat,lon);
+  const c=idx>=0?genesisAt(idx,genState.hour):null;
+  el.hidden=false;
+  const close=`<button class="br-x" onclick="document.getElementById('basinReadout').hidden=true">✕</button>`;
+  if(!c){ el.innerHTML=close+`<div class="br-where">No model data at this point.</div>`; return; }
+  const t=genState.times&&genState.times[genState.hour];
+  const where=`${Math.abs(c.lat).toFixed(1)}°${c.lat>=0?"N":"S"} ${Math.abs(c.lon).toFixed(1)}°${c.lon>=0?"E":"W"}`+
+    (t?` · valid ${t.replace("T"," ")}Z (${genState.hour===0?"now":"+"+genState.hour+"h"})`:"");
+  if(c.land){ el.innerHTML=close+`<div class="br-score" style="color:var(--muted);font-size:17px">LAND</div>`+
+    `<div class="br-where">${where}<br>Tropical cyclones form over warm ocean — land points are masked out.</div>`; return; }
+  const v=verdict(c.G);
+  el.innerHTML=close+
+    `<div class="br-score" style="color:${v.c}">${Math.round(c.G)}<span style="font-size:13px;color:var(--muted)"> / 100</span></div>`+
+    `<div class="br-verdict" style="color:${v.c}">${v.t}${c.sstKnown?"":" · SST UNKNOWN"}</div>`+
+    `<div class="br-where">${where}</div>`+
+    ingRow(c.sstS, "Sea surface temp", c.sst!=null?c.sst.toFixed(1)+" °C":"no data here", "needs ≥ 26.5 °C")+
+    ingRow(c.shearS, "Deep-layer shear", Math.round(c.shear)+" kt", "needs < 20 kt")+
+    ingRow(c.rhS, "Mid-level humidity", c.rh!=null?Math.round(c.rh)+" %":"n/a", "needs > 50 %")+
+    ingRow(c.vortS, "Low-level spin", c.eta!=null?(c.eta*1e5).toFixed(1)+" ×10⁻⁵/s":"n/a", "cyclonic rotation at 850 hPa")+
+    ingRow(c.corS, "Distance from equator", Math.abs(c.lat).toFixed(1)+"°", "needs ≳ 5°")+
+    `<div class="br-note">${c.sstKnown?"":"SST unavailable here — score assumes neutral. "}`+
+    `A favourability diagnostic from model fields, not a formation forecast. NHC's Tropical Weather Outlook is the official word.</div>`;
+}
+
+/* ---------- genesis controls ---------- */
+(function wireGenesis(){
+  const tg=document.getElementById("tgGenesis"); if(!tg) return;
+  tg.addEventListener("click",()=>{
+    genState.on=!genState.on;
+    tg.classList.toggle("on",genState.on);
+    document.getElementById("genControls").hidden=!genState.on;
+    if(genState.on){ updateGenLegend(); loadGenesisField(); }
+    else{ genSetPlaying(false); if(genLayer){ basinMap.removeLayer(genLayer); genLayer=null; } }
+  });
+  document.getElementById("genVar").addEventListener("change",e=>{
+    genState.variable=e.target.value; updateGenLegend(); renderGenesisField();
+  });
+  document.getElementById("genHour").addEventListener("input",e=>{
+    genSetPlaying(false); genState.hour=+e.target.value; renderGenesisField();
+  });
+  document.getElementById("genPlay").addEventListener("click",()=>genSetPlaying(!genPlayTimer));
+})();
+let genPlayTimer=null;
+function genSetPlaying(on){
+  const btn=document.getElementById("genPlay"); if(!btn) return;
+  clearInterval(genPlayTimer); genPlayTimer=null;
+  if(on && genState.on && genState.grid){
+    btn.textContent="❚❚";
+    genPlayTimer=setInterval(()=>{
+      const h=document.getElementById("genHour");
+      let v=+h.value+3; if(v>+h.max) v=0;
+      h.value=v; genState.hour=v; renderGenesisField();
+    },600);
+  }else btn.textContent="▶";
+}
 
 /* ---------- refresh cycle ---------- */
 const stRefresh = document.getElementById("stRefresh");
